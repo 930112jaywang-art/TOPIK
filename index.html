@@ -218,6 +218,7 @@ nav.tabs button[aria-selected="true"]{color:var(--accent);font-weight:600}
 .qfilter{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;background:var(--sunk);border-radius:12px;padding:4px}
 .qfilter button{border:0;background:none;border-radius:9px;padding:9px 2px;font-size:15px;color:var(--muted)}
 .qfilter button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.qfilter.two{grid-template-columns:1fr 1fr}
 .qfinfo{font-size:15px;color:var(--muted)}
 /* 精簡模式：隱藏輔助的小字與小元件 */
 header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice .ctr,.curve,
@@ -240,15 +241,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   <section id="view-home" data-view>
     <div class="home">
       <div class="date" id="hmDate"></div>
-      <div class="task">
-        <h2 id="hmTitle">今天的學習</h2>
-        <div class="task-nums">
-          <div><b id="hmNew">0</b><span>個新字</span></div>
-          <div><b id="hmDue">0</b><span>個要複習</span></div>
-        </div>
-        <button class="btn big" id="hmStart" type="button">開始學習</button>
-        <div class="row"><button class="btn ghost grow" type="button" data-go="match">配對練習</button><button class="btn ghost grow" type="button" data-go="quiz">模擬題</button></div>
-      </div>
+      <button class="btn big" id="hmStart" type="button">開始學習</button>
 
       <h2 class="sec">學習紀錄</h2>
       <div class="kpis">
@@ -273,6 +266,11 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
       </div>
     </div>
   </section>
+
+  <div class="qfilter two" id="practiceSeg" role="group" aria-label="選擇練習方式" hidden>
+    <button type="button" data-pm="review" aria-pressed="true">打字</button>
+    <button type="button" data-pm="match" aria-pressed="false">配對</button>
+  </div>
 
   <section id="view-review" data-view hidden>
     <div style="display:flex;flex-direction:column;gap:12px">
@@ -345,10 +343,8 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   <div class="inner" role="tablist">
     <button type="button" role="tab" data-tab="home" aria-selected="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/></svg>首頁</button>
-    <button type="button" role="tab" data-tab="review" aria-selected="false">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></svg>複習</button>
-    <button type="button" role="tab" data-tab="match" aria-selected="false">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="6" rx="1.5"/><rect x="14" y="14" width="7" height="6" rx="1.5"/><path d="M10 7h3a2 2 0 0 1 2 2v5"/></svg>配對</button>
+    <button type="button" role="tab" data-tab="practice" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></svg>練習</button>
     <button type="button" role="tab" data-tab="quiz" aria-selected="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h9a2 2 0 0 1 2 2v14H8a2 2 0 0 1-2-2V7"/><path d="M4 4h5v5H4z"/><path d="M10 12h6M10 16h4"/></svg>模擬題</button>
     <button type="button" role="tab" data-tab="words" aria-selected="false">
@@ -454,11 +450,6 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
       learned++; if (w.due <= t) due++;
       lv[w.interval >= 21 ? 3 : w.interval >= 3 ? 2 : 1]++;
     }
-    const newLeft = Math.min(nw, Math.max(0, NEW_PER_DAY - newToday()));
-    $('#hmNew').textContent = newLeft; $('#hmDue').textContent = due;
-    const done = !newLeft && !due;
-    $('#hmTitle').textContent = done ? '今天的任務完成了' : '今天的學習';
-    $('#hmStart').textContent = done ? '再多練一輪' : (rv && rv.started && rv.cur ? '繼續學習' : '開始學習');
 
     // 連續天數：從今天（今天還沒練就從昨天）往回算
     const has = k => { const d = store.log[k]; return d && d.r > 0; };
@@ -493,6 +484,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   }
   $('#hmBars').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (!b) return; barSel = +b.dataset.i; renderHome(); });
   $('#hmStart').addEventListener('click', () => { if (!rv || !rv.cur) startReview(); show('review'); });
+  $('#hmStart').style.flex = 'none';
 
   function stats(){
     try { renderHome(); } catch (e) { console.warn(e); }
@@ -1006,11 +998,19 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   });
 
   // ---------- 分頁 ----------
+  // 練習分頁：記住上次選的是打字還是配對
+  let practiceMode = 'review';
+  try { if (localStorage.getItem('vocab.practiceMode') === 'match') practiceMode = 'match'; } catch {}
   function show(tab){
+    if (tab === 'practice') tab = practiceMode;
     if (!['home', 'review', 'match', 'quiz', 'words'].includes(tab)) tab = 'home';
+    const practice = tab === 'review' || tab === 'match';
+    if (practice && tab !== practiceMode) { practiceMode = tab; try { localStorage.setItem('vocab.practiceMode', tab); } catch {} }
     if (tab === 'home') renderHome();
     document.querySelectorAll('[data-view]').forEach(v => v.hidden = v.id !== 'view-' + tab);
-    document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
+    $('#practiceSeg').hidden = !practice;
+    document.querySelectorAll('[data-pm]').forEach(b => b.setAttribute('aria-pressed', b.dataset.pm === tab));
+    document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === (practice ? 'practice' : tab)));
     if (tab === 'match' && (!mt || mt.gone.size === mt.ids.length)) startMatch();
     if (tab === 'review' && (!rv || !rv.cur)) startReview();
     if (tab === 'words') renderWords();
@@ -1018,7 +1018,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     try { history.replaceState(null, '', '#' + tab); } catch {}
     window.scrollTo(0, 0);
   }
-  document.addEventListener('click', e => { const t = e.target.closest('[data-tab],[data-go]'); if (t) show(t.dataset.tab || t.dataset.go); });
+  document.addEventListener('click', e => { const t = e.target.closest('[data-tab],[data-go],[data-pm]'); if (t) show(t.dataset.tab || t.dataset.go || t.dataset.pm); });
 
   function renderAll(reset){
     stats(); renderWords();
