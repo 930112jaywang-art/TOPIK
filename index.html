@@ -211,6 +211,10 @@ nav.tabs button[aria-selected="true"]{color:var(--accent);font-weight:600}
 .weak div:first-child{border-top:0}
 .weak .t{font-family:var(--ko);font-weight:700;font-size:17px}
 .weak .c{color:var(--bad);white-space:nowrap}
+.reset{border-top:1px solid var(--line);margin-top:12px;padding-top:12px}
+.reset p{margin:0 0 8px;font-size:15px;color:var(--muted)}
+.btn.ghost.danger{color:var(--bad);flex:1}
+.btn.ghost.danger.armed{background:var(--bad);color:#fff}
 /* 精簡模式：隱藏輔助的小字與小元件 */
 header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice .ctr,.curve,
 .panel .help,.item .n,.pill,#lnSkip,.hint,.trans .lbl{display:none!important}
@@ -299,6 +303,11 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
         <label class="setting" for="sessionSize">每一輪幾題<select id="sessionSize"><option>10</option><option selected>20</option><option>30</option><option>50</option></select></label>
         <div class="row" style="margin-top:10px"><button class="btn ghost" id="exportBtn" type="button">匯出進度備份</button><label class="btn ghost" for="importFile">從備份還原</label><input type="file" id="importFile" accept=".json,application/json" hidden></div>
         <div class="msg" id="backupMsg" role="status"></div>
+        <div class="reset">
+          <p>重設（建議先按上面的「匯出進度備份」）</p>
+          <div class="row"><button class="btn ghost danger" id="resetLog" type="button">清除練習紀錄</button><button class="btn ghost danger" id="resetAll" type="button">全部從頭開始</button></div>
+          <div class="msg" id="resetMsg" role="status"></div>
+        </div>
         <p class="curve">遺忘曲線排程：答對後間隔依序為 <code>1 天 → 3 天 → 約 7 天 → 約 17 天 → …</code>，之後每次答對再乘上熟練度倍率。答錯的字 10 分鐘後重新出現，從頭開始。</p>
       </details>
       <details class="panel" id="importBox">
@@ -1009,6 +1018,24 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
       msg.style.color = 'var(--good)'; msg.textContent = '已從備份還原進度。';
     } catch { msg.style.color = 'var(--bad)'; msg.textContent = '這個檔案不是 TOPIK 單字卡的備份。'; }
     e.target.value = '';
+  });
+
+  // ---------- 重設：按一次變成「再按一次確認」，3 秒內再按才會執行 ----------
+  function confirmButton(btn, label, action){
+    btn.addEventListener('click', () => {
+      if (btn.classList.contains('armed')) { btn.classList.remove('armed'); btn.textContent = label; clearTimeout(btn._t); action(); return; }
+      btn.classList.add('armed'); btn.textContent = '再按一次確認';
+      btn._t = setTimeout(() => { btn.classList.remove('armed'); btn.textContent = label; }, 3000);
+    });
+  }
+  confirmButton($('#resetLog'), '清除練習紀錄', () => {
+    store.log = {}; persist(); barSel = null; renderHome();
+    const m = $('#resetMsg'); m.style.color = 'var(--good)'; m.textContent = '已清除練習紀錄，學習進度保留。';
+  });
+  confirmButton($('#resetAll'), '全部從頭開始', () => {
+    store = {words: {}, qs: {}, log: {}}; persist(); buildW(); barSel = null;
+    rv = null; mt = null; qz = null; renderAll(true); startQuiz();
+    const m = $('#resetMsg'); m.style.color = 'var(--good)'; m.textContent = '已全部重設，1671 個字都回到「還沒學」。';
   });
 
   // ---------- 啟動 ----------
