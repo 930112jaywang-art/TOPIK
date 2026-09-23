@@ -1,7 +1,7 @@
 {
   "name": "TOPIK 單字卡",
   "short_name": "TOPIK 單字",
-  "start_url": "./#review",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#EEF1EC",

@@ -1,5 +1,5 @@
 // 離線用：App 本身的檔案「先上網抓最新版，失敗才用快取」；字型「先用快取」
-const CACHE = 'topik-v1';
+const CACHE = 'topik-v2';
 const FILES = ['./', './index.html', './data.js', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -21,7 +21,8 @@ self.addEventListener('fetch', e => {
     return;
   }
   if (url.origin !== location.origin) return;
-  e.respondWith(fetch(req).then(res => {
+  // no-cache：每次都向網站確認有沒有新版，避免更新後還看到舊畫面
+  e.respondWith(fetch(req.url, {cache: 'no-cache'}).then(res => {
     const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); return res;
   }).catch(() => caches.match(req, {ignoreSearch: true}).then(hit => hit || caches.match('./index.html'))));
 });

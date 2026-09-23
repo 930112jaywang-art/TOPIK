@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&family=Noto+Sans+KR:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
 <style>
 :root{
+  --lv1:#C3CBF2; --lv2:#7D8EE2; --lv3:#3148C8;
   --ground:#EEF1EC; --surface:#FFFFFF; --sunk:#E3E8E2; --line:#CDD5CC;
   --ink:#18211D; --muted:#5E6B64; --accent:#3148C8; --accent-ink:#FFFFFF;
   --marker:#F3D548; --good:#23835A; --good-bg:#DDF1E6; --bad:#BF3B33; --bad-bg:#F8E1DE;
@@ -30,6 +31,7 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     color-scheme:dark;
+    --lv1:#2C3569; --lv2:#5566C9; --lv3:#A3B0FF;
     --ground:#111513; --surface:#1A201D; --sunk:#232A26; --line:#323B36;
     --ink:#E6ECE8; --muted:#97A39C; --accent:#8C9DFF; --accent-ink:#0E1330;
     --marker:#6B5B12; --good:#5FCB95; --good-bg:#15321F; --bad:#FF8A80; --bad-bg:#3A1917;
@@ -38,6 +40,7 @@
 }
 :root[data-theme="dark"]{
   color-scheme:dark;
+  --lv1:#2C3569; --lv2:#5566C9; --lv3:#A3B0FF;
   --ground:#111513; --surface:#1A201D; --sunk:#232A26; --line:#323B36;
   --ink:#E6ECE8; --muted:#97A39C; --accent:#8C9DFF; --accent-ink:#0E1330;
   --marker:#6B5B12; --good:#5FCB95; --good-bg:#15321F; --bad:#FF8A80; --bad-bg:#3A1917;
@@ -169,6 +172,45 @@ nav.tabs button[aria-selected="true"]{color:var(--accent);font-weight:600}
 .toast{position:fixed;left:16px;right:16px;bottom:calc(84px + env(safe-area-inset-bottom,0px));max-width:508px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;box-shadow:0 8px 30px rgba(0,0,0,.18);z-index:6;font-size:15px}
 .toast p{margin:0}
 .toast .btn{margin-top:6px}
+/* 首頁與學習紀錄 */
+.home{display:flex;flex-direction:column;gap:14px}
+.date{font-size:15px;color:var(--muted)}
+.task{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:16px}
+.task h2{margin:0;font-size:20px}
+.task-nums{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.task-nums div{background:var(--ground);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column}
+.task-nums b{font-family:var(--mono);font-size:30px;font-weight:500;line-height:1.1;font-variant-numeric:tabular-nums}
+.task-nums span{font-size:15px;color:var(--muted)}
+.btn.big{padding:15px 18px;font-size:17px}
+.row .btn.ghost.grow{flex:1}
+.sec{margin:8px 0 0;font-size:18px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:2px}
+.kpi b{font-family:var(--mono);font-size:24px;font-weight:500;font-variant-numeric:tabular-nums}
+.kpi span{font-size:14px;color:var(--muted)}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.box h3{margin:0;font-size:16px}
+.bars{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;height:150px;align-items:end;border-bottom:1px solid var(--line)}
+.bars button{border:0;background:none;padding:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;gap:4px}
+.bars .v{font-family:var(--mono);font-size:13px;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
+.bars i{display:block;background:var(--lv2);border-radius:4px 4px 0 0;min-height:0}
+.bars button.today i{background:var(--accent)}
+.bars button.on i{outline:2px solid var(--ink);outline-offset:2px}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;text-align:center;font-size:14px;color:var(--muted)}
+.days .today{color:var(--ink);font-weight:600}
+.readout{font-size:15px;min-height:1.5em}
+.stack{display:flex;gap:2px;height:18px;border-radius:6px;overflow:hidden;background:var(--surface)}
+.stack i{display:block;height:100%}
+.legend{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;font-size:15px}
+.home>*,.box>*{min-width:0}
+.legend span{display:flex;align-items:center;gap:8px}
+.legend i{width:12px;height:12px;border-radius:3px;flex:none}
+.legend b{font-family:var(--mono);font-weight:500;margin-left:auto;font-variant-numeric:tabular-nums}
+.weak{display:flex;flex-direction:column}
+.weak div{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:15px}
+.weak div:first-child{border-top:0}
+.weak .t{font-family:var(--ko);font-weight:700;font-size:17px}
+.weak .c{color:var(--bad);white-space:nowrap}
 /* 精簡模式：隱藏輔助的小字與小元件 */
 header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice .ctr,.curve,
 .panel .help,.item .n,.pill,#lnSkip,.hint,.trans .lbl{display:none!important}
@@ -187,7 +229,44 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   </header>
   
 
-  <section id="view-review" data-view>
+  <section id="view-home" data-view>
+    <div class="home">
+      <div class="date" id="hmDate"></div>
+      <div class="task">
+        <h2 id="hmTitle">今天的學習</h2>
+        <div class="task-nums">
+          <div><b id="hmNew">0</b><span>個新字</span></div>
+          <div><b id="hmDue">0</b><span>個要複習</span></div>
+        </div>
+        <button class="btn big" id="hmStart" type="button">開始學習</button>
+        <div class="row"><button class="btn ghost grow" type="button" data-go="match">配對練習</button><button class="btn ghost grow" type="button" data-go="quiz">模擬題</button></div>
+      </div>
+
+      <h2 class="sec">學習紀錄</h2>
+      <div class="kpis">
+        <div class="kpi"><b id="kStreak">0</b><span>連續天數</span></div>
+        <div class="kpi"><b id="kLearned">0</b><span>已學單字</span></div>
+        <div class="kpi"><b id="kRate">–</b><span>7 天答對率</span></div>
+      </div>
+      <div class="box">
+        <h3>近 7 天練習題數</h3>
+        <div class="bars" id="hmBars" role="group" aria-label="近 7 天每天練習題數"></div>
+        <div class="days" id="hmDays"></div>
+        <div class="readout" id="hmRead" role="status"></div>
+      </div>
+      <div class="box">
+        <h3>單字熟練度</h3>
+        <div class="stack" id="hmStack" role="img"></div>
+        <div class="legend" id="hmLegend"></div>
+      </div>
+      <div class="box" id="hmWeakBox">
+        <h3>最常答錯的字</h3>
+        <div class="weak" id="hmWeak"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-review" data-view hidden>
     <div style="display:flex;flex-direction:column;gap:12px">
       <div class="meta-row"><span id="rvCount">—</span><span id="rvKind"></span></div>
       <div class="bar"><i id="rvBar"></i></div>
@@ -249,8 +328,10 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
 
 <nav class="tabs" aria-label="功能">
   <div class="inner" role="tablist">
-    <button type="button" role="tab" data-tab="review" aria-selected="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></svg>打字複習</button>
+    <button type="button" role="tab" data-tab="home" aria-selected="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/></svg>首頁</button>
+    <button type="button" role="tab" data-tab="review" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></svg>複習</button>
     <button type="button" role="tab" data-tab="match" aria-selected="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="6" rx="1.5"/><rect x="14" y="14" width="7" height="6" rx="1.5"/><path d="M10 7h3a2 2 0 0 1 2 2v5"/></svg>配對</button>
     <button type="button" role="tab" data-tab="quiz" aria-selected="false">
@@ -274,7 +355,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   // 單字表與題庫來自 data.js；store.words 只存學過／匯入／刪除過的字，store.qs 存模擬題進度
   const PKEY = 'topik.progress.v1';
   let QB = [], QP = new Map();
-  let W = new Map(), store = {words: {}, qs: {}};
+  let W = new Map(), store = {words: {}, qs: {}, log: {}};
   const demo = false;
   const hash = s => { let h = 5381; for (const c of s) h = (h * 33 + c.codePointAt(0)) >>> 0; return h.toString(36); };
   const fresh = (no, term, mean, ex, now = Date.now()) => ({no, term, mean, ex: ex || '', created: now + (no || 0), reps: 0, interval: 0, ease: 2.5, due: 0, lapses: 0, seen: 0, firstSeen: 0});
@@ -283,9 +364,9 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   function loadStore(){
     try {
       const o = JSON.parse(localStorage.getItem(PKEY) || 'null');
-      if (o && o.words) { store = {words: o.words || {}, qs: o.qs || {}}; return; }
+      if (o && o.words) { store = {words: o.words || {}, qs: o.qs || {}, log: o.log || {}}; return; }
     } catch {}
-    if (window.INITIAL) { store = JSON.parse(JSON.stringify(window.INITIAL)); persist(); }
+    if (window.INITIAL) { store = {log: {}, ...JSON.parse(JSON.stringify(window.INITIAL))}; persist(); }
   }
   function persist(){
     try { localStorage.setItem(PKEY, JSON.stringify(store)); }
@@ -303,8 +384,13 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
 
   // ---------- 遺忘曲線排程 ----------
   const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return +d; };
+  // 每天的練習紀錄：r 題數、ok 答對、n 新學的字
+  const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  function logDay(field, add = 1){ const k = dayKey(), d = store.log[k] || (store.log[k] = {r: 0, ok: 0, n: 0}); d[field] = (d[field] || 0) + add; }
   function grade(id, q){
     const w = W.get(id); if (!w) return;
+    if (!w.seen) logDay('n');
+    logDay('r'); if (q !== 'again') logDay('ok');
     schedule(w, q);
     saveWord(id);
   }
@@ -335,7 +421,59 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     if (d < DAY) return Math.ceil(d / 3600000) + ' 小時後';
     return Math.round(d / DAY) + ' 天後';
   };
+  const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
+  let barSel = null;
+  function renderHome(){
+    const now = new Date(), t = Date.now();
+    $('#hmDate').textContent = `${now.getMonth() + 1} 月 ${now.getDate()} 日 星期${WEEK[now.getDay()]}`;
+    let due = 0, nw = 0, learned = 0, lv = [0, 0, 0, 0];
+    for (const w of W.values()) {
+      if (isNew(w)) { nw++; lv[0]++; continue; }
+      learned++; if (w.due <= t) due++;
+      lv[w.interval >= 21 ? 3 : w.interval >= 3 ? 2 : 1]++;
+    }
+    const newLeft = Math.min(nw, Math.max(0, NEW_PER_DAY - newToday()));
+    $('#hmNew').textContent = newLeft; $('#hmDue').textContent = due;
+    const done = !newLeft && !due;
+    $('#hmTitle').textContent = done ? '今天的任務完成了' : '今天的學習';
+    $('#hmStart').textContent = done ? '再多練一輪' : (rv && rv.started && rv.cur ? '繼續學習' : '開始學習');
+
+    // 連續天數：從今天（今天還沒練就從昨天）往回算
+    const has = k => { const d = store.log[k]; return d && d.r > 0; };
+    let streak = 0; const d = new Date();
+    if (!has(dayKey(d))) d.setDate(d.getDate() - 1);
+    while (has(dayKey(d))) { streak++; d.setDate(d.getDate() - 1); }
+    $('#kStreak').textContent = streak;
+    $('#kLearned').textContent = learned;
+
+    // 近 7 天
+    const days = [];
+    for (let i = 6; i >= 0; i--) { const x = new Date(); x.setDate(x.getDate() - i); const k = dayKey(x); days.push({k, x, ...(store.log[k] || {r: 0, ok: 0, n: 0})}); }
+    const tr = days.reduce((a, b) => a + b.r, 0), tok = days.reduce((a, b) => a + b.ok, 0);
+    $('#kRate').textContent = tr ? Math.round(tok / tr * 100) + '%' : '–';
+    const max = Math.max(10, ...days.map(x => x.r));
+    $('#hmBars').innerHTML = days.map((x, i) => `<button type="button" data-i="${i}" class="${i === 6 ? 'today' : ''}${barSel === i ? ' on' : ''}" aria-label="${x.x.getMonth() + 1}/${x.x.getDate()} 練習 ${x.r} 題">${x.r ? `<span class="v">${x.r}</span>` : ''}<i style="height:${x.r / max * 100}%"></i></button>`).join('');
+    $('#hmDays').innerHTML = days.map((x, i) => `<span class="${i === 6 ? 'today' : ''}">${i === 6 ? '今天' : WEEK[x.x.getDay()]}</span>`).join('');
+    const sel = days[barSel ?? 6];
+    $('#hmRead').textContent = `${barSel == null || barSel === 6 ? '今天' : `${sel.x.getMonth() + 1}/${sel.x.getDate()}`}：練習 ${sel.r} 題，答對 ${sel.ok} 題${sel.n ? `，新學 ${sel.n} 個字` : ''}`;
+
+    // 熟練度（同一色系由淺到深）
+    const LV = [['還沒學', 'var(--sunk)'], ['學習中', 'var(--lv1)'], ['熟悉（3 天以上）', 'var(--lv2)'], ['精熟（21 天以上）', 'var(--lv3)']];
+    const total = lv.reduce((a, b) => a + b, 0) || 1;
+    $('#hmStack').innerHTML = lv.map((c, i) => c ? `<i style="flex:${c / total};background:${LV[i][1]}"></i>` : '').join('');
+    $('#hmStack').setAttribute('aria-label', LV.map((x, i) => `${x[0]} ${lv[i]} 個`).join('，'));
+    $('#hmLegend').innerHTML = LV.map((x, i) => `<span><i style="background:${x[1]}"></i>${x[0]}<b>${lv[i]}</b></span>`).join('');
+
+    // 最常答錯的字
+    const weak = [...W.values()].filter(w => w.lapses > 0).sort((a, b) => b.lapses - a.lapses).slice(0, 5);
+    $('#hmWeakBox').hidden = !weak.length;
+    $('#hmWeak').innerHTML = weak.map(w => `<div><span><span class="t" lang="ko">${esc(w.term)}</span>　${esc(w.mean)}</span><span class="c">錯 ${w.lapses} 次</span></div>`).join('');
+  }
+  $('#hmBars').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (!b) return; barSel = +b.dataset.i; renderHome(); });
+  $('#hmStart').addEventListener('click', () => { if (!rv || !rv.cur) startReview(); show('review'); });
+
   function stats(){
+    try { renderHome(); } catch (e) { console.warn(e); }
     const now = Date.now(); let due = 0, learned = 0;
     for (const w of W.values()) { if (!isNew(w)) { learned++; if (w.due <= now) due++; } }
     $('#stDue').textContent = due; $('#stToday').textContent = `${newToday()}/${NEW_PER_DAY}`;
@@ -759,6 +897,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     const c = e.target.closest('.choice'); if (!c || c.disabled || qz.picked != null) return;
     const q = qz.list[qz.i], ci = +c.dataset.ci, ok = ci === 0;
     qz.picked = ci; qz.started = true; if (ok) qz.right++;
+    logDay('r'); if (ok) logDay('ok');
     (ok ? sfx.good : sfx.bad)();
     const p = {...qprog(q.id)}; schedule(p, ok ? 'good' : 'again'); p[ok ? 'right' : 'wrong'] = (p[ok ? 'right' : 'wrong'] || 0) + 1;
     QP.set(q.id, p);
@@ -827,7 +966,8 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
 
   // ---------- 分頁 ----------
   function show(tab){
-    if (!['review', 'match', 'quiz', 'words'].includes(tab)) tab = 'review';
+    if (!['home', 'review', 'match', 'quiz', 'words'].includes(tab)) tab = 'home';
+    if (tab === 'home') renderHome();
     document.querySelectorAll('[data-view]').forEach(v => v.hidden = v.id !== 'view-' + tab);
     document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
     if (tab === 'match' && (!mt || mt.gone.size === mt.ids.length)) startMatch();
@@ -864,7 +1004,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     try {
       const o = JSON.parse(await f.text());
       if (!o || typeof o.words !== 'object') throw new Error('bad');
-      store = {words: o.words || {}, qs: o.qs || {}}; persist(); buildW();
+      store = {words: o.words || {}, qs: o.qs || {}, log: o.log || {}}; persist(); buildW();
       rv = null; mt = null; qz = null; renderAll(true); startQuiz();
       msg.style.color = 'var(--good)'; msg.textContent = '已從備份還原進度。';
     } catch { msg.style.color = 'var(--bad)'; msg.textContent = '這個檔案不是 TOPIK 單字卡的備份。'; }
@@ -876,10 +1016,10 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   buildW();
   renderAll(true);
   startQuiz();
-  show((location.hash || '#review').slice(1));
+  show('home');
   if (location.hash === '#soundtest') soundTest();
   try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js', {updateViaCache: 'none'}).catch(() => {});
 })();
 </script>
 </body>
