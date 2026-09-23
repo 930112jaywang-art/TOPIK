@@ -1,0 +1,28 @@
+{
+  "name": "TOPIK 單字卡",
+  "short_name": "TOPIK 單字",
+  "start_url": "./#review",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#EEF1EC",
+  "theme_color": "#3148C8",
+  "lang": "zh-Hant",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
