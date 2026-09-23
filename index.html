@@ -219,6 +219,7 @@ nav.tabs button[aria-selected="true"]{color:var(--accent);font-weight:600}
 .qfilter button{border:0;background:none;border-radius:9px;padding:9px 2px;font-size:15px;color:var(--muted)}
 .qfilter button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .qfilter.two{grid-template-columns:1fr 1fr}
+.learn-count{font-family:var(--mono);font-size:15px;color:var(--muted)}
 .qfinfo{font-size:15px;color:var(--muted)}
 /* 精簡模式：隱藏輔助的小字與小元件 */
 header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice .ctr,.curve,
@@ -272,6 +273,13 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     <button type="button" data-pm="match" aria-pressed="false">配對</button>
   </div>
 
+  <section id="view-learn" data-view hidden>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="bar"><i id="lnBar"></i></div>
+      <div class="card" id="lnCard"></div>
+    </div>
+  </section>
+
   <section id="view-review" data-view hidden>
     <div style="display:flex;flex-direction:column;gap:12px">
       <div class="meta-row"><span id="rvCount">—</span><span id="rvKind"></span></div>
@@ -303,7 +311,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     <div style="display:flex;flex-direction:column;gap:12px">
       <details class="panel" id="setBox">
         <summary>學習設定</summary>
-        <label class="setting" for="newPerDay">每天最多學幾個新字<select id="newPerDay"><option>5</option><option>10</option><option selected>15</option><option>20</option><option>30</option><option>50</option></select></label>
+        <label class="setting" for="newPerDay">每次學幾個新字<select id="newPerDay"><option>5</option><option>10</option><option selected>15</option><option>20</option><option>30</option><option>50</option></select></label>
         <label class="setting" for="sessionSize">每一輪幾題<select id="sessionSize"><option>10</option><option selected>20</option><option>30</option><option>50</option></select></label>
         <div class="row" style="margin-top:10px"><button class="btn ghost" id="exportBtn" type="button">匯出進度備份</button><label class="btn ghost" for="importFile">從備份還原</label><input type="file" id="importFile" accept=".json,application/json" hidden></div>
         <div class="msg" id="backupMsg" role="status"></div>
@@ -407,14 +415,14 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   function logDay(field, add = 1){ const k = dayKey(), d = store.log[k] || (store.log[k] = {r: 0, ok: 0, n: 0}); d[field] = (d[field] || 0) + add; }
   function grade(id, q){
     const w = W.get(id); if (!w) return;
-    if (!w.seen) logDay('n');
+    if (!w.seen && !w.intro) logDay('n');
     logDay('r'); if (q !== 'again') logDay('ok');
     schedule(w, q);
     saveWord(id);
   }
   function schedule(w, q){
     const now = Date.now();
-    if (!w.seen) w.firstSeen = now;
+    if (!w.firstSeen) w.firstSeen = now;
     w.seen = (w.seen || 0) + 1;
     if (q === 'again') {
       w.lapses++; w.reps = 0; w.interval = 0;
@@ -429,7 +437,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
       w.due = now + w.interval * DAY - 2 * 3600000; // 提前 2 小時到期，隔天同一時段就會出現
     }
   }
-  const isNew = w => !w.seen;
+  const isNew = w => !w.seen && !w.intro;
   const isDue = (w, now = Date.now()) => !isNew(w) && w.due <= now;
   const newToday = () => { const s = startOfToday(); let c = 0; for (const w of W.values()) if (w.firstSeen >= s) c++; return c; };
   const rel = ms => {
@@ -483,7 +491,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     $('#hmWeak').innerHTML = weak.map(w => `<div><span><span class="t" lang="ko">${esc(w.term)}</span>　${esc(w.mean)}</span><span class="c">錯 ${w.lapses} 次</span></div>`).join('');
   }
   $('#hmBars').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (!b) return; barSel = +b.dataset.i; renderHome(); });
-  $('#hmStart').addEventListener('click', () => { if (!rv || !rv.cur) startReview(); show('review'); });
+  $('#hmStart').addEventListener('click', () => { startLearn(); show('learn'); });
   $('#hmStart').style.flex = 'none';
 
   function stats(){
@@ -665,9 +673,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   function buildQueue(){
     const now = Date.now(), all = [...W.entries()];
     const due = all.filter(([, w]) => isDue(w, now)).sort((a, b) => a[1].due - b[1].due);
-    const room = Math.max(0, NEW_PER_DAY - newToday());
-    const nw = all.filter(([, w]) => isNew(w)).sort((a, b) => a[1].created - b[1].created).slice(0, room);
-    return [...due, ...nw].slice(0, SESSION).map(([id]) => id);
+    return due.slice(0, SESSION).map(([id]) => id);
   }
   function startReview(){
     const q = buildQueue();
@@ -699,6 +705,47 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     $('#lnSkip').onclick = finish;
     setTimeout(() => { try { $('#lnNext').focus({preventScroll: true}); } catch {} }, 30);
   }
+  // ---------- 開始學習：一張一張看新字，一批 NEW_PER_DAY 個（預設 15），沒有每日上限 ----------
+  let ln = null;
+  function startLearn(){
+    const ids = [...W.entries()].filter(([, w]) => isNew(w)).sort((a, b) => a[1].created - b[1].created).slice(0, NEW_PER_DAY).map(([id]) => id);
+    ln = {ids, i: 0, done: !ids.length};
+    renderLearnView();
+  }
+  function introduce(id){
+    const w = W.get(id); if (!w || !isNew(w)) return;
+    const now = Date.now();
+    w.intro = now; w.firstSeen = now; w.due = now; // 看過就排進練習
+    logDay('n'); saveWord(id);
+  }
+  function renderLearnView(){
+    const card = $('#lnCard');
+    if (ln.done) {
+      const left = [...W.values()].filter(isNew).length;
+      $('#lnBar').style.width = '100%';
+      card.className = 'card done';
+      card.innerHTML = `<h2>${ln.ids.length ? `這 ${ln.ids.length} 個新字看完了` : `${W.size} 個單字全部學過了`}</h2>
+        <p>${left ? `還有 ${left} 個新字。可以繼續學，或先去練習把剛學的記起來。` : '接下來用打字或配對練習，把它們記起來。'}</p>
+        <div class="row" style="width:100%">${left ? '<button class="btn ghost" type="button" id="lnMore">繼續學習</button>' : ''}<button class="btn" type="button" data-go="review">去練習</button></div>`;
+      const more = $('#lnMore'); if (more) { more.style.flex = '1'; more.onclick = startLearn; }
+      return;
+    }
+    const id = ln.ids[ln.i], w = W.get(id), last = ln.i === ln.ids.length - 1;
+    introduce(id); stats();
+    $('#lnBar').style.width = ((ln.i + 1) / ln.ids.length * 100) + '%';
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="learn-count">${ln.i + 1} / ${ln.ids.length}</div>
+      <div class="target"><mark lang="ko">${esc(w.term)}</mark><button class="icon-btn" type="button" id="lnSpeak" aria-label="發音">${speakerSvg}</button></div>
+      <div class="meaning">${esc(w.mean)}</div>
+      ${w.ex ? `<div class="example">${esc(w.ex)}</div>` : ''}
+      <div class="row">${ln.i ? '<button class="btn ghost" type="button" id="lnPrev">上一個</button>' : ''}<button class="btn" type="button" id="lnNext">${last ? '看完了' : '下一個'}</button></div>`;
+    $('#lnSpeak').onclick = () => speak(w.term);
+    const go = i => { ln.i = i; renderLearnView(); speak(W.get(ln.ids[i]).term); };
+    const prev = $('#lnPrev'); if (prev) prev.onclick = () => go(ln.i - 1);
+    $('#lnNext').onclick = () => { if (last) { ln.done = true; renderLearnView(); } else go(ln.i + 1); };
+  }
+
   function nextReview(){ rv.cur = rv.queue.shift() ?? null; rv.state = 'ask'; rv.hinted = false; rv.note = ''; renderReview(); }
   function renderReview(){
     if (rv.learn) return renderLearn();
@@ -709,15 +756,15 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     if (!w) {
       card.className = 'card done'; $('#rvKind').textContent = '';
       let soon = Infinity; for (const x of W.values()) if (!isNew(x)) soon = Math.min(soon, x.due);
-      const capped = newToday() >= NEW_PER_DAY && [...W.values()].some(isNew);
+      const capped = false;
       const nextTxt = soon < Infinity ? '下一批單字 ' + rel(soon) + '到期' : '';
       card.innerHTML = rv.total
         ? `<h2>完成這一輪</h2>
            <div class="tally"><span><b style="color:var(--good)">${rv.right}</b>答對</span><span><b style="color:var(--hard)">${rv.close}</b>差一點</span><span><b style="color:var(--bad)">${rv.wrong}</b>答錯</span></div>
            <p>${nextTxt}</p>
            <div class="row" style="width:100%"><button class="btn ghost" type="button" data-go="match">去配對練習</button><button class="btn" type="button" id="rvAgain">再來一輪</button></div>`
-        : `<h2>目前沒有要複習的字</h2><p>${capped ? `今天的 ${NEW_PER_DAY} 個新字已經學完了。` : ''}${nextTxt ? nextTxt + '，捷徑會提醒你。' : ''}</p>
-           <div class="row" style="width:100%"><button class="btn ghost" type="button" data-go="match">配對練習</button>${capped ? '<button class="btn" type="button" id="rvMore">再學 5 個新字</button>' : '<button class="btn" type="button" id="rvAgain">重新整理</button>'}</div>`;
+        : `<h2>目前沒有要練習的字</h2><p>${nextTxt ? nextTxt + '。' : ''}先到首頁按「開始學習」認識新字吧。</p>
+           <div class="row" style="width:100%"><button class="btn ghost" type="button" data-go="match">配對練習</button><button class="btn" type="button" data-go="learn">開始學習</button></div>`;
       const again = $('#rvAgain'); if (again) again.onclick = startReview;
       const more = $('#rvMore'); if (more) more.onclick = () => { NEW_PER_DAY += 5; stats(); startReview(); };
       return;
@@ -1003,14 +1050,15 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   try { if (localStorage.getItem('vocab.practiceMode') === 'match') practiceMode = 'match'; } catch {}
   function show(tab){
     if (tab === 'practice') tab = practiceMode;
-    if (!['home', 'review', 'match', 'quiz', 'words'].includes(tab)) tab = 'home';
+    if (!['home', 'learn', 'review', 'match', 'quiz', 'words'].includes(tab)) tab = 'home';
+    if (tab === 'learn' && (!ln || ln.done)) startLearn();
     const practice = tab === 'review' || tab === 'match';
     if (practice && tab !== practiceMode) { practiceMode = tab; try { localStorage.setItem('vocab.practiceMode', tab); } catch {} }
     if (tab === 'home') renderHome();
     document.querySelectorAll('[data-view]').forEach(v => v.hidden = v.id !== 'view-' + tab);
     $('#practiceSeg').hidden = !practice;
     document.querySelectorAll('[data-pm]').forEach(b => b.setAttribute('aria-pressed', b.dataset.pm === tab));
-    document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === (practice ? 'practice' : tab)));
+    document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === (practice ? 'practice' : tab === 'learn' ? 'home' : tab)));
     if (tab === 'match' && (!mt || mt.gone.size === mt.ids.length)) startMatch();
     if (tab === 'review' && (!rv || !rv.cur)) startReview();
     if (tab === 'words') renderWords();
