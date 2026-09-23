@@ -670,11 +670,21 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
 
   // ---------- 打字複習 ----------
   let rv = null;
-  function buildQueue(){
-    const now = Date.now(), all = [...W.entries()];
-    const due = all.filter(([, w]) => isDue(w, now)).sort((a, b) => a[1].due - b[1].due);
-    return due.slice(0, SESSION).map(([id]) => id);
+  // 熟悉度：到期的最優先，其次是間隔短、錯得多的字；間隔 21 天以上算「已經熟了」
+  const FAMILIAR = 21;
+  function weakest(n, now = Date.now()){
+    const learned = [...W.entries()].filter(([, w]) => !isNew(w));
+    const weak = learned.filter(([, w]) => w.interval < FAMILIAR || w.due <= now)
+      .map(([id, w]) => [id, (w.due <= now ? 0 : 1000) + w.interval * 10 - w.lapses * 5 + Math.random()])
+      .sort((a, b) => a[1] - b[1]).map(([id]) => id);
+    const pick = weak.slice(0, n);
+    if (pick.length < n) { // 都熟了：從熟悉的字裡隨機補滿
+      const rest = shuffle(learned.map(([id]) => id).filter(id => !pick.includes(id)));
+      pick.push(...rest.slice(0, n - pick.length));
+    }
+    return pick;
   }
+  function buildQueue(){ return weakest(SESSION); }
   function startReview(){
     const q = buildQueue();
     // 這一輪的新字先學一遍，再進入練習
@@ -763,7 +773,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
            <div class="tally"><span><b style="color:var(--good)">${rv.right}</b>答對</span><span><b style="color:var(--hard)">${rv.close}</b>差一點</span><span><b style="color:var(--bad)">${rv.wrong}</b>答錯</span></div>
            <p>${nextTxt}</p>
            <div class="row" style="width:100%"><button class="btn ghost" type="button" data-go="match">去配對練習</button><button class="btn" type="button" id="rvAgain">再來一輪</button></div>`
-        : `<h2>目前沒有要練習的字</h2><p>${nextTxt ? nextTxt + '。' : ''}先到首頁按「開始學習」認識新字吧。</p>
+        : `<h2>還沒有學過的字</h2><p>先到首頁按「開始學習」認識新字，就可以開始練習了。</p>
            <div class="row" style="width:100%"><button class="btn ghost" type="button" data-go="match">配對練習</button><button class="btn" type="button" data-go="learn">開始學習</button></div>`;
       const again = $('#rvAgain'); if (again) again.onclick = startReview;
       const more = $('#rvMore'); if (more) more.onclick = () => { NEW_PER_DAY += 5; stats(); startReview(); };
@@ -821,7 +831,9 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     rv.started = true; rv.lastInput = input; rv.state = r;
     if (!rv.graded.has(id)) {
       rv.graded.add(id);
-      grade(id, r === 'ok' ? 'good' : r === 'close' ? 'hard' : 'again');
+      const w = W.get(id);
+      if (r === 'no' || isDue(w)) grade(id, r === 'ok' ? 'good' : r === 'close' ? 'hard' : 'again');
+      else { logDay('r'); logDay('ok'); persist(); }
       rv[r === 'ok' ? 'right' : r === 'close' ? 'close' : 'wrong']++;
     }
     if (r === 'no') rv.queue.push(id);
@@ -834,12 +846,11 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   let mt = null;
   function shuffle(a){ for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; }
   function startMatch(){
-    const now = Date.now(), all = [...W.entries()], seen = all.filter(([, w]) => !isNew(w));
-    const due = shuffle(seen.filter(([, w]) => w.due <= now));
-    const weak = shuffle(seen.filter(([, w]) => w.due > now)).sort((a, b) => (b[1].lapses - a[1].lapses) || (a[1].interval - b[1].interval));
+    const all = [...W.entries()];
+    const cand = weakest(MATCH_N * 3).map(id => [id, W.get(id)]);
     const nw = all.filter(([, w]) => isNew(w)).sort((a, b) => a[1].created - b[1].created);
     const pick = [];
-    for (const [id, w] of [...due, ...weak, ...nw]) {
+    for (const [id, w] of [...cand, ...(cand.length < 2 ? nw : [])]) {
       if (pick.length >= MATCH_N) break;
       if (pick.some(p => norm(W.get(p).mean) === norm(w.mean))) continue; // 避免兩個字意思一樣
       pick.push(id);
