@@ -215,6 +215,10 @@ nav.tabs button[aria-selected="true"]{color:var(--accent);font-weight:600}
 .reset p{margin:0 0 8px;font-size:15px;color:var(--muted)}
 .btn.ghost.danger{color:var(--bad);flex:1}
 .btn.ghost.danger.armed{background:var(--bad);color:#fff}
+.qfilter{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;background:var(--sunk);border-radius:12px;padding:4px}
+.qfilter button{border:0;background:none;border-radius:9px;padding:9px 2px;font-size:15px;color:var(--muted)}
+.qfilter button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.qfinfo{font-size:15px;color:var(--muted)}
 /* 精簡模式：隱藏輔助的小字與小元件 */
 header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice .ctr,.curve,
 .panel .help,.item .n,.pill,#lnSkip,.hint,.trans .lbl{display:none!important}
@@ -288,6 +292,8 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
 
   <section id="view-quiz" data-view hidden>
     <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="qfilter" id="qzFilter" role="group" aria-label="選擇題型"></div>
+      <div class="qfinfo" id="qzFInfo"></div>
       <div class="meta-row"><span id="qzCount">—</span><span id="qzInfo"></span></div>
       <div class="bar"><i id="qzBar"></i></div>
       <div class="card" id="qzCard"></div>
@@ -317,7 +323,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
         <div class="row" style="margin-top:10px"><button class="btn" id="importBtn" type="button">匯入</button></div>
         <div class="msg" id="importMsg" role="status"></div>
       </details>
-      <input class="search" id="search" type="search" placeholder="搜尋韓文、英文或編號" autocomplete="off">
+      <input class="search" id="search" type="search" placeholder="搜尋韓文、中文、英文或編號" autocomplete="off">
       <div class="list" id="wordList"></div>
     </div>
   </section>
@@ -383,8 +389,15 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   }
   function buildW(){
     W = new Map();
-    for (const [no, term, mean] of (window.DECK || [])) W.set(nid(no), fresh(no, term, mean, '', 0));
-    for (const [id, w] of Object.entries(store.words)) { if (w.deleted) W.delete(id); else W.set(id, {...w}); }
+    const base = new Map();
+    for (const [no, term, mean, en] of (window.DECK || [])) { const w = fresh(no, term, mean, '', 0); w.en = en || ''; base.set(nid(no), w); }
+    W = new Map(base);
+    for (const [id, w] of Object.entries(store.words)) {
+      if (w.deleted) { W.delete(id); continue; }
+      const b = base.get(id);
+      // 單字表內的字：學習進度用存的，韓文與意思用最新的單字表
+      W.set(id, b ? {...w, term: b.term, mean: b.mean, en: b.en} : {...w});
+    }
     QB = (window.QUIZ || []);
     QP = new Map(Object.entries(store.qs));
   }
@@ -846,8 +859,27 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     const idx = new Map(); for (const [id, w] of W) idx.set(norm(w.term), id);
     return terms.map(t => idx.get(norm(t))).filter(Boolean);
   }
+  // 題型篩選
+  const QF = [['all', '全部', '四種題型混合'], ['listen', '聽力', '聽力 1–6：聽句子，選出適當的回答'], ['topic', '主題', '閱讀 31–33：判斷在講什麼'], ['blank', '填空', '閱讀 34–39：選出空格裡的字'], ['match', '內容', '閱讀 43–45：選出和內容一樣的句子']];
+  let qType = 'all';
+  try { qType = localStorage.getItem('vocab.quizType') || 'all'; } catch {}
+  if (!QF.some(f => f[0] === qType)) qType = 'all';
+  function renderQFilter(){
+    $('#qzFilter').innerHTML = QF.map(([k, name]) => `<button type="button" data-qt="${k}" aria-pressed="${k === qType}">${name}</button>`).join('');
+    const f = QF.find(x => x[0] === qType), pool = QB.filter(q => qType === 'all' || q.t === qType);
+    const done = pool.filter(q => QP.get(q.id)?.seen).length;
+    $('#qzFInfo').textContent = `${f[2]}（共 ${pool.length} 題，做過 ${done} 題）`;
+  }
+  $('#qzFilter').addEventListener('click', e => {
+    const b = e.target.closest('[data-qt]'); if (!b || b.dataset.qt === qType) return;
+    qType = b.dataset.qt;
+    try { localStorage.setItem('vocab.quizType', qType); } catch {}
+    startQuiz();
+  });
   function startQuiz(){
     const now = Date.now();
+    const QB = window.QUIZ.filter(q => qType === 'all' || q.t === qType);
+    renderQFilter();
     const due = QB.filter(q => { const p = QP.get(q.id); return p && p.seen && p.due <= now; }).sort((a, b) => QP.get(a.id).due - QP.get(b.id).due);
     // 新題目：各題型輪流出，避免一次都是同一種
     const pool = {}; for (const q of QB) if (!(QP.get(q.id)?.seen)) (pool[q.t] ||= []).push(q);
@@ -910,7 +942,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     (ok ? sfx.good : sfx.bad)();
     const p = {...qprog(q.id)}; schedule(p, ok ? 'good' : 'again'); p[ok ? 'right' : 'wrong'] = (p[ok ? 'right' : 'wrong'] || 0) + 1;
     QP.set(q.id, p);
-    store.qs[q.id] = p; persist();
+    store.qs[q.id] = p; persist(); renderQFilter();
     if (!ok) for (const id of termIds(q.w)) { const w = W.get(id); if (isNew(w) || w.due > Date.now() + 10 * MIN) grade(id, 'again'); }
     renderQuiz(); stats(); renderWords();
   });
@@ -924,7 +956,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   function renderWords(){
     if ($('#view-words').hidden) return;
     const q = norm($('#search').value || '');
-    const rows = [...W.entries()].filter(([, w]) => !q || norm(w.term).includes(q) || norm(w.mean).includes(q) || String(w.no) === q)
+    const rows = [...W.entries()].filter(([, w]) => !q || norm(w.term).includes(q) || norm(w.mean).includes(q) || norm(w.en || '').includes(q) || String(w.no) === q)
       .sort((a, b) => (isNew(a[1]) - isNew(b[1])) || (isNew(a[1]) ? a[1].created - b[1].created : a[1].due - b[1].due));
     const shown = rows.slice(0, LIST_MAX);
     $('#wordList').innerHTML = rows.length
