@@ -215,11 +215,14 @@ nav.tabs button[aria-selected="true"]{color:var(--accent);font-weight:600}
 .reset p{margin:0 0 8px;font-size:15px;color:var(--muted)}
 .btn.ghost.danger{color:var(--bad);flex:1}
 .btn.ghost.danger.armed{background:var(--bad);color:#fff}
-.qfilter{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;background:var(--sunk);border-radius:12px;padding:4px}
+.qfilter{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;background:var(--sunk);border-radius:12px;padding:4px}
 .qfilter button{border:0;background:none;border-radius:9px;padding:9px 2px;font-size:15px;color:var(--muted)}
 .qfilter button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .qfilter.two{grid-template-columns:1fr 1fr}
 .learn-count{font-family:var(--mono);font-size:15px;color:var(--muted)}
+.source-note{font-size:14px;color:var(--muted);margin:12px 0 0;line-height:1.6}
+.passage.notice{white-space:pre-line;background:var(--surface);border:1.5px dashed var(--line);font-size:17px;line-height:1.75}
+.trans .pre{white-space:pre-line}
 .qfinfo{font-size:15px;color:var(--muted)}
 /* 精簡模式：隱藏輔助的小字與小元件 */
 header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice .ctr,.curve,
@@ -320,6 +323,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
           <div class="row"><button class="btn ghost danger" id="resetLog" type="button">清除練習紀錄</button><button class="btn ghost danger" id="resetAll" type="button">全部從頭開始</button></div>
           <div class="msg" id="resetMsg" role="status"></div>
         </div>
+        <p class="source-note">單字出處：TOPIK I 詞彙表，以及國立國語院《한국어 학습용 어휘 목록》（2003）A 級，依公共누리第 1 類授權使用。</p>
         <p class="curve">遺忘曲線排程：答對後間隔依序為 <code>1 天 → 3 天 → 約 7 天 → 約 17 天 → …</code>，之後每次答對再乘上熟練度倍率。答錯的字 10 分鐘後重新出現，從頭開始。</p>
       </details>
       <details class="panel" id="importBox">
@@ -394,7 +398,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   function buildW(){
     W = new Map();
     const base = new Map();
-    for (const [no, term, mean, en] of (window.DECK || [])) { const w = fresh(no, term, mean, '', 0); w.en = en || ''; base.set(nid(no), w); }
+    for (const [no, term, mean, en, ord] of (window.DECK || [])) { const w = fresh(no, term, mean, '', 0); w.en = en || ''; if (ord != null) w.created = ord; base.set(nid(no), w); }
     W = new Map(base);
     for (const [id, w] of Object.entries(store.words)) {
       if (w.deleted) { W.delete(id); continue; }
@@ -903,6 +907,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     blank: ['閱讀 34–39 題型', '(    )에 들어갈 가장 알맞은 것을 고르십시오.'],
     match: ['閱讀 43–45 題型', '다음의 내용과 같은 것을 고르십시오.'],
     listen: ['聽力 1–6 題型', '다음을 듣고 알맞은 대답을 고르십시오.'],
+    notice: ['閱讀 40–42 題型', '다음을 읽고 맞지 않는 것을 고르십시오.'],
   };
   const qprog = id => QP.get(id) || {seen: 0, reps: 0, interval: 0, ease: 2.5, due: 0, lapses: 0, right: 0, wrong: 0};
   function termIds(terms){
@@ -910,7 +915,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     return terms.map(t => idx.get(norm(t))).filter(Boolean);
   }
   // 題型篩選
-  const QF = [['all', '全部', '四種題型混合'], ['listen', '聽力', '聽力 1–6：聽句子，選出適當的回答'], ['topic', '主題', '閱讀 31–33：判斷在講什麼'], ['blank', '填空', '閱讀 34–39：選出空格裡的字'], ['match', '內容', '閱讀 43–45：選出和內容一樣的句子']];
+  const QF = [['all', '全部', '五種題型混合'], ['listen', '聽力', '聽力 1–6：聽句子，選出適當的回答'], ['topic', '主題', '閱讀 31–33：判斷在講什麼'], ['blank', '填空', '閱讀 34–39：選出空格裡的字'], ['notice', '公告', '閱讀 40–42：看公告、廣告、訊息，選出「不對」的句子'], ['match', '內容', '閱讀 43–45：選出和內容一樣的句子']];
   let qType = 'all';
   try { qType = localStorage.getItem('vocab.quizType') || 'all'; } catch {}
   if (!QF.some(f => f[0] === qType)) qType = 'all';
@@ -963,7 +968,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     const answered = qz.picked != null, listen = q.t === 'listen';
     const passage = listen && !answered
       ? `<div class="passage hidden-text"><button class="icon-btn" type="button" id="qzPlay" aria-label="播放">${speakerSvg}</button>點喇叭聽題目，可以重複聽</div>`
-      : `<div class="passage" lang="ko">${esc(q.p)}${listen ? ` <button class="icon-btn" type="button" id="qzPlay" aria-label="再聽一次" style="vertical-align:middle">${speakerSvg}</button>` : ''}</div>`;
+      : `<div class="passage${q.t === 'notice' ? ' notice' : ''}" lang="ko">${esc(q.p)}${listen ? ` <button class="icon-btn" type="button" id="qzPlay" aria-label="再聽一次" style="vertical-align:middle">${speakerSvg}</button>` : ''}</div>`;
     const nums = '①②③④';
     const choices = qz.order.idx.map((ci, k) => {
       const cls = answered ? (ci === 0 ? ' right' : ci === qz.picked ? ' picked-wrong' : '') : '';
@@ -974,7 +979,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
       const ids = termIds(q.w);
       after = `<div class="feedback"><span class="verdict ${qz.picked === 0 ? 'ok' : 'no'}">${qz.picked === 0 ? '答對了' : '答錯了，正解是綠色那個'}</span>
         <div class="explain">${esc(q.e)}</div></div>
-        ${q.tr ? `<div class="trans"><span class="lbl">整句翻譯</span><div class="ko" lang="ko">${q.t === 'blank' ? esc(q.p).replace(/\(\s*\)/, `<mark>${esc(q.c[0])}</mark>`) : esc(q.p)}</div><div class="zh">${esc(q.tr)}</div>${q.t === 'listen' ? `<div class="ko" lang="ko" style="margin-top:6px">→ ${esc(q.c[0])}</div><div class="zh">${esc(q.ctr ? q.ctr[0] : '')}</div>` : ''}</div>` : ''}
+        ${q.tr ? `<div class="trans"><span class="lbl">整句翻譯</span><div class="ko${q.t === 'notice' ? ' pre' : ''}" lang="ko">${q.t === 'blank' ? esc(q.p).replace(/\(\s*\)/, `<mark>${esc(q.c[0])}</mark>`) : esc(q.p)}</div><div class="zh${q.t === 'notice' ? ' pre' : ''}">${esc(q.tr)}</div>${q.t === 'listen' ? `<div class="ko" lang="ko" style="margin-top:6px">→ ${esc(q.c[0])}</div><div class="zh">${esc(q.ctr ? q.ctr[0] : '')}</div>` : ''}</div>` : ''}
         ${ids.length ? `<div class="chips">${ids.map(id => `<button class="chip" type="button" data-say="${esc(W.get(id).term)}" lang="ko">${esc(W.get(id).term)}<small>${esc(W.get(id).mean)}</small></button>`).join('')}</div>` : ''}
         <div class="row"><button class="btn" type="button" id="qzNext">下一題</button></div>`;
     }
