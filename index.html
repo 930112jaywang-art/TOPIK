@@ -869,8 +869,10 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     return [...out];
   }
   function checkZh(input, mean){
-    const a = zhClean(input); if (!a) return false;
-    return zhOptions(mean).some(o => o === a || (a.length >= 2 && o.length >= 2 && (o.includes(a) || a.includes(o))));
+    // 可以一次寫好幾個意思（用、，；或空格分開），每一個都要對才算對
+    const opts = zhOptions(mean);
+    const parts = String(input).split(/[、；;，,／/\s]+/).map(zhClean).filter(Boolean);
+    return parts.length > 0 && parts.every(a => opts.some(o => o === a || (a.length >= 2 && o.length >= 2 && (o.includes(a) || a.includes(o)))));
   }
   let tq = null;
   function startTrans(){
