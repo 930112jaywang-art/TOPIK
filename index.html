@@ -1004,27 +1004,30 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   // ---------- 短文閱讀 ----------
   // 文章裡 [表面形|原形] 的字可以點來查；點過的字會排進練習
   const RD_RE = /\[([^\]|]+)(?:\|([^\]]+))?\]/g;
-  const LV_NAME = {1: '入門：3～5 句', 2: '初級：5～6 句', 3: '進階：7～8 句'};
+  const LV_NAME = {1: '入門：5 句以內', 2: '初級：6 句', 3: '進階：7 句以上'};
   let rd = null; // {p, ans: {}, showTr}
   function termId(term){ for (const [id, w] of W) if (w.term === term) return id; return null; }
   function passageWords(p){ return [...p.k.matchAll(RD_RE)].map(m => m[2] || m[1]); }
-  function knownPct(p){
+  function knownPct(p, idx){
     const ws = [...new Set(passageWords(p))]; if (!ws.length) return 100;
-    const k = ws.filter(t => { const id = termId(t); return id && !isNew(W.get(id)); }).length;
+    const k = ws.filter(t => { const id = idx ? idx.get(t) : termId(t); return id && !isNew(W.get(id)); }).length;
     return Math.round(k / ws.length * 100);
   }
   function renderReadList(){
     rd = null; $('#rdCard').hidden = true;
     const list = $('#rdList'); list.hidden = false;
     const read = store.read || {};
+    const idx = new Map([...W].map(([id, w]) => [w.term, id]));
     let html = '';
     for (const lv of [1, 2, 3]) {
-      html += `<p class="rd-level">${LV_NAME[lv]}</p>`;
-      for (const p of (window.READ || []).filter(x => x.lv === lv)) {
+      const ps = (window.READ || []).filter(x => x.lv === lv).map(p => [p, knownPct(p, idx)])
+        .sort((a, b) => (!!read[a[0].id] - !!read[b[0].id]) || b[1] - a[1]); // 沒讀過、認識多的排前面
+      html += `<p class="rd-level">${LV_NAME[lv]}（${ps.length} 篇）</p>`;
+      for (const [p, pct] of ps) {
         const r = read[p.id];
         html += `<button class="rd-item" type="button" data-rd="${p.id}">
           <div><div class="rd-t" lang="ko">${esc(p.t)}</div><div class="rd-z">${esc(p.tz)}</div></div>
-          <div class="rd-meta"><span>認識 ${knownPct(p)}%</span>${r ? `<span class="ok">✓ 讀過</span>` : ''}</div></button>`;
+          <div class="rd-meta"><span>認識 ${pct}%</span>${r ? `<span class="ok">✓ 讀過</span>` : ''}</div></button>`;
       }
     }
     list.innerHTML = html;
