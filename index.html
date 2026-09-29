@@ -220,6 +220,10 @@ nav.tabs button[aria-selected="true"]{color:var(--accent);font-weight:600}
 .qfilter button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .qfilter.two{grid-template-columns:1fr 1fr}
 .qfilter.three{grid-template-columns:1fr 1fr 1fr}
+.ex-box{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;background:var(--ground);border-radius:12px;padding:12px 14px}
+.ex-ko{font-family:var(--ko);font-size:17px;line-height:1.55}
+.ex-ko b{font-weight:700;background:linear-gradient(transparent 60%,var(--marker) 60%)}
+.ex-zh{font-size:15px;color:var(--muted);line-height:1.5;margin-top:2px}
 .answer-in.zh{font-family:var(--ui)}
 .target .ko-word{font-family:var(--ko-display)}
 .learn-count{font-family:var(--mono);font-size:15px;color:var(--muted)}
@@ -409,17 +413,31 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   function buildW(){
     W = new Map();
     const base = new Map();
-    for (const [no, term, mean, en, ord] of (window.DECK || [])) { const w = fresh(no, term, mean, '', 0); w.en = en || ''; if (ord != null) w.created = ord; base.set(nid(no), w); }
+    const EX = window.EX || {};
+    for (const [no, term, mean, en, ord] of (window.DECK || [])) {
+      const w = fresh(no, term, mean, '', 0); w.en = en || ''; if (ord != null) w.created = ord;
+      if (EX[no]) { w.exKo = EX[no][0]; w.exZh = EX[no][1]; }
+      base.set(nid(no), w);
+    }
     W = new Map(base);
     for (const [id, w] of Object.entries(store.words)) {
       if (w.deleted) { W.delete(id); continue; }
       const b = base.get(id);
-      // 單字表內的字：學習進度用存的，韓文與意思用最新的單字表
-      W.set(id, b ? {...w, term: b.term, mean: b.mean, en: b.en} : {...w});
+      // 單字表內的字：學習進度用存的，韓文、意思、例句用最新的單字表
+      W.set(id, b ? {...w, term: b.term, mean: b.mean, en: b.en, exKo: b.exKo, exZh: b.exZh} : {...w});
     }
     QB = (window.QUIZ || []);
     QP = new Map(Object.entries(store.qs));
   }
+  // 例句：韓文（單字原形出現在句子裡就標出來）＋中文翻譯＋發音按鈕
+  function exampleHtml(w){
+    if (!w || !w.exKo) return '';
+    const i = w.exKo.indexOf(w.term);
+    const ko = i < 0 ? esc(w.exKo) : esc(w.exKo.slice(0, i)) + '<b>' + esc(w.term) + '</b>' + esc(w.exKo.slice(i + w.term.length));
+    return `<div class="ex-box"><div><div class="ex-ko" lang="ko">${ko}</div><div class="ex-zh">${esc(w.exZh || '')}</div></div>
+      <button class="icon-btn" type="button" data-say-ex="${esc(w.exKo)}" aria-label="念例句">${speakerSvg}</button></div>`;
+  }
+  document.addEventListener('click', e => { const b = e.target.closest('[data-say-ex]'); if (b) speak(b.dataset.sayEx); });
   function saveWord(id){ const w = W.get(id); if (!w) return; store.words[id] = {...w}; persist(); }
   function removeWord(id){ W.delete(id); store.words[id] = {deleted: true}; persist(); renderAll(); }
 
@@ -660,7 +678,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   document.addEventListener('click', e => {
     const b = e.target.closest('button, .tile, .choice, summary');
     // 這一下會念韓文、或韓文正在念的時候，就不播點按聲（iPhone 兩者會互相蓋掉）
-    if (!b || b.disabled || performance.now() - sfxAt < 60 || performance.now() - speakAt < 60) return;
+    if (!b || b.disabled || b.hasAttribute('data-say-ex') || performance.now() - sfxAt < 60 || performance.now() - speakAt < 60) return;
     try { if (speechSynthesis.speaking) return; } catch {}
     sfx.tap();
   });
@@ -763,7 +781,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
       <div class="learn-count">${ln.i + 1} / ${ln.ids.length}</div>
       <div class="target"><mark lang="ko">${esc(w.term)}</mark><button class="icon-btn" type="button" id="lnSpeak" aria-label="發音">${speakerSvg}</button></div>
       <div class="meaning">${esc(w.mean)}</div>
-      ${w.ex ? `<div class="example">${esc(w.ex)}</div>` : ''}
+      ${w.ex ? `<div class="example">${esc(w.ex)}</div>` : exampleHtml(w)}
       <div class="row">${ln.i ? '<button class="btn ghost" type="button" id="lnPrev">上一個</button>' : ''}<button class="btn" type="button" id="lnNext">${last ? '看完了' : '下一個'}</button></div>`;
     $('#lnSpeak').onclick = () => speak(w.term);
     const go = i => { ln.i = i; renderLearnView(); speak(W.get(ln.ids[i]).term); };
@@ -827,7 +845,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
         ${rv.lastInput ? `<input class="answer-in ${r}" value="${esc(rv.lastInput)}" readonly aria-label="你的答案">` : ''}
         <div class="feedback"><span class="verdict ${r}">${txt}</span>
           <div class="target"><mark lang="ko">${esc(w.term)}</mark><button class="icon-btn" type="button" id="rvSpeak" aria-label="發音">${speakerSvg}</button></div>
-          ${w.ex ? `<div class="example">${esc(w.ex)}</div>` : ''}
+          ${w.ex ? `<div class="example">${esc(w.ex)}</div>` : exampleHtml(w)}
           <div class="next-due">${r === 'no' ? '這一輪結束前會再考一次，10 分鐘後也會再出現' : '下次複習：' + rel(w.due)}</div>
         </div>
         ${r === 'no' ? `<form id="rvRetype" autocomplete="off"><input class="answer-in" id="rvRe" lang="ko" placeholder="照著打一次" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="next" aria-label="照著打一次"></form>` : ''}
@@ -919,6 +937,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
         ${tq.last ? `<input class="answer-in zh ${ok ? 'ok' : 'no'}" value="${esc(tq.last)}" readonly aria-label="你的答案">` : ''}
         <div class="feedback"><span class="verdict ${ok ? 'ok' : 'no'}">${ok ? '答對了' : tq.last ? '不太對' : '沒關係，記住它'}</span>
           <div class="meaning">${esc(w.mean)}</div></div>
+        ${exampleHtml(w)}
         ${!ok && tq.last && tq.snap ? '<button class="link-btn" type="button" id="trOverride" style="align-self:flex-start">我的答案其實也對</button>' : ''}
         <div class="row"><button class="btn" type="button" id="trNext">下一個</button></div>`;
       $('#trSpeak').onclick = () => speak(w.term);
