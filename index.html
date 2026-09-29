@@ -230,7 +230,7 @@ nav.tabs button[aria-selected="true"]{color:var(--accent);font-weight:600}
 /* 精簡模式：隱藏輔助的小字與小元件 */
 header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice .ctr,.curve,
 .panel .help,.item .n,.pill,#lnSkip,.hint,.trans .lbl{display:none!important}
-.item{grid-template-columns:1fr auto}
+.item{grid-template-columns:1fr}
 </style>
 </head>
 <body>
@@ -909,6 +909,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
       const inp = $('#trInput');
       setTimeout(() => { try { inp.focus({preventScroll: true}); } catch {} }, 30);
       $('#trSpeak').onclick = () => speak(w.term);
+      speak(w.term);
       $('#trForm').onsubmit = e => { e.preventDefault(); if (inp.value.trim()) answerTrans(inp.value); };
       $('#trSkip').onclick = () => answerTrans('');
     } else {
@@ -943,7 +944,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     }
     if (!ok) tq.queue.push(id); // 這一輪最後再考一次
     (ok ? sfx.good : sfx.bad)();
-    speak(w.term, 420);
+    if (!ok) speak(w.term, 420); // 答對就不再念
     renderTrans(); stats(); renderWords();
   }
 
@@ -1116,7 +1117,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
       .sort((a, b) => (isNew(a[1]) - isNew(b[1])) || (isNew(a[1]) ? a[1].created - b[1].created : a[1].due - b[1].due));
     const shown = rows.slice(0, LIST_MAX);
     $('#wordList').innerHTML = rows.length
-      ? shown.map(([id, w]) => `<div class="item"><span class="n">${w.no || ''}</span><div><div class="w" lang="ko">${esc(w.term)}</div><div class="m">${esc(w.mean)}</div></div>${statusPill(w)}${demo ? '<span></span>' : `<button type="button" class="del" data-del="${id}">刪除</button>`}</div>`).join('')
+      ? shown.map(([id, w]) => `<div class="item"><span class="n">${w.no || ''}</span><div><div class="w" lang="ko">${esc(w.term)}</div><div class="m">${esc(w.mean)}</div></div>${statusPill(w)}</div>`).join('')
         + (rows.length > LIST_MAX ? `<div class="empty">還有 ${rows.length - LIST_MAX} 個單字，用上面的搜尋找</div>` : '')
       : `<div class="empty">${q ? '找不到符合的單字' : '還沒有單字'}</div>`;
   }
