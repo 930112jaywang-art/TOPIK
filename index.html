@@ -884,7 +884,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     const other = mt.sel; mt.sel = null;
     if (other.id === id) {
       mt.gone.add(id);
-      sfx.good(); speak(W.get(id).term, 420); // 配對成功就念出這張字卡
+      sfx.good(); if (side === 'ko') speak(W.get(id).term, 420); // 只有點韓文字卡才念，點中文字卡不念
       const w = W.get(id);
       if (!mt.errs.has(id) && (isDue(w) || isNew(w))) grade(id, 'good');
     } else {
