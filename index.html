@@ -58,7 +58,7 @@ button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 .app{max-width:540px;margin:0 auto;min-height:100%;padding-inline:16px;padding-block:14px 96px;display:flex;flex-direction:column;gap:16px}
-header.top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 header.top h1{margin:0;font-weight:600;font-size:22px;letter-spacing:-.01em;display:flex;align-items:baseline;gap:8px}
 header.top h1 span{font-family:var(--ko-display);font-size:26px}
 .stats{display:flex;gap:14px;font-size:13px;color:var(--muted)}
@@ -254,6 +254,18 @@ nav.tabs button[aria-selected="true"]{color:var(--accent);font-weight:600}
 .passage.notice{white-space:pre-line;background:var(--surface);border:1.5px dashed var(--line);font-size:17px;line-height:1.75}
 .trans .pre{white-space:pre-line}
 .qfinfo{font-size:15px;color:var(--muted)}
+.set-btn{width:42px;height:42px}
+.set-btn svg{width:22px;height:22px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:20;display:flex;align-items:flex-start;justify-content:center;padding:calc(56px + env(safe-area-inset-top,0px)) 16px 16px}
+.modal{background:var(--surface);border-radius:18px;padding:18px;width:100%;max-width:460px;display:flex;flex-direction:column;gap:6px;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.modal-head h2{margin:0;font-size:20px}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-top:1px solid var(--line);font-size:16px}
+.set-row.col{flex-direction:column;align-items:stretch;gap:8px;border-top:0}
+.set-row span{display:flex;flex-direction:column;gap:2px}
+.set-row small{font-size:14px;color:var(--muted)}
+.set-row input[type=checkbox]{width:24px;height:24px;flex:none;accent-color:var(--accent)}
+.set-row input[type=range]{accent-color:var(--accent)}
 /* 精簡模式：隱藏輔助的小字與小元件 */
 header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice .ctr,.curve,
 .panel .help,.item .n,.pill,#lnSkip,.hint,.trans .lbl{display:none!important}
@@ -269,6 +281,9 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
       <span><b id="stToday">0</b>今日新字</span>
       <span><b id="stLearned">0</b>/ <b id="stAll" style="margin-left:3px">0</b>已學</span>
     </div>
+    <button class="icon-btn set-btn" type="button" id="setBtn" aria-label="聲音設定">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
   </header>
   
 
@@ -360,7 +375,6 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
         <summary>學習設定</summary>
         <label class="setting" for="newPerDay">每次學幾個新字<select id="newPerDay"><option>5</option><option>10</option><option selected>15</option><option>20</option><option>30</option><option>50</option></select></label>
         <label class="setting" for="sessionSize">每一輪幾題<select id="sessionSize"><option>10</option><option selected>20</option><option>30</option><option>50</option></select></label>
-        <label class="setting" for="mixAudio">和音樂、影片同時播放<input type="checkbox" id="mixAudio" style="width:22px;height:22px"></label>
         <div class="row" style="margin-top:10px"><button class="btn ghost" id="exportBtn" type="button">匯出進度備份</button><label class="btn ghost" for="importFile">從備份還原</label><input type="file" id="importFile" accept=".json,application/json" hidden></div>
         <div class="msg" id="backupMsg" role="status"></div>
         <div class="reset">
@@ -388,6 +402,18 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   <p>聲音測試</p>
   <div class="row"><button class="btn" id="sndA" type="button">測試 A</button><button class="btn" id="sndB" type="button">測試 B</button><button class="btn ghost" id="sndClose" type="button">關閉</button></div>
   <pre id="sndOut" style="margin:0;white-space:pre-wrap;font-size:13px;font-family:var(--mono)"></pre>
+</div>
+<div class="modal-bg" id="setModal" hidden>
+  <div class="modal" role="dialog" aria-labelledby="setTitle">
+    <div class="modal-head"><h2 id="setTitle">聲音設定</h2><button class="btn ghost" type="button" id="setClose">完成</button></div>
+    <div class="set-row col">
+      <label for="voiceVol">語音音量 <b id="voiceVolTxt"></b></label>
+      <div class="row" style="align-items:center;flex-wrap:nowrap"><input type="range" id="voiceVol" min="0" max="100" step="10" style="flex:1"><button class="btn ghost" type="button" id="voiceTest">試聽</button></div>
+    </div>
+    <label class="set-row" for="autoSpeak"><span>自動播放韓文語音<small>關掉後只有點喇叭才會念</small></span><input type="checkbox" id="autoSpeak"></label>
+    <label class="set-row" for="mixAudio"><span>和音樂、影片同時播放<small>關掉的話 App 的聲音會讓音樂暫停</small></span><input type="checkbox" id="mixAudio"></label>
+    <label class="set-row" for="duckAudio"><span>播放時降低背景音量<small>App 出聲時，音樂暫時變小聲</small></span><input type="checkbox" id="duckAudio"></label>
+  </div>
 </div>
 <div class="wsheet" id="wSheet" role="dialog" aria-label="單字" hidden>
   <div class="ws-top"><span class="ws-term" id="wsTerm" lang="ko"></span><button class="icon-btn" type="button" id="wsSay" aria-label="發音"></button><button class="btn ghost" type="button" id="wsClose" style="margin-left:auto">關閉</button></div>
@@ -619,13 +645,15 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     if (delay && speechReady) { setTimeout(() => speakNow(t), delay); return; }
     speakNow(t);
   }
+  // 自動念（翻題目、答完題、點字卡時）；點喇叭則一律會念
+  function sayAuto(t, delay){ if (autoSpeak) speak(t, delay); }
   function speakNow(t){
     const ss = window.speechSynthesis;
     if (!ss || typeof SpeechSynthesisUtterance === 'undefined') { warnVoice(); return; }
     try {
       if (!koVoice) pickVoice();
       const u = new SpeechSynthesisUtterance(String(t).split('/')[0]);
-      u.lang = 'ko-KR'; u.rate = .85; u.volume = 1;
+      u.lang = 'ko-KR'; u.rate = .85; u.volume = Math.max(0, Math.min(1, voiceVol / 100));
       if (koVoice) u.voice = koVoice;
       u.onstart = () => { speechReady = true; };
       u.onend = () => { wakeAudio(); setTimeout(wakeAudio, 250); setTimeout(wakeAudio, 700); };
@@ -647,10 +675,12 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   // ---------- 點按音效 ----------
   // 用程式產生短 WAV 音檔，交給 <audio> 播放：iPhone 上 <audio> 不受靜音開關影響，
   // 也比 Web Audio 更不容易在嵌入頁面裡被擋。播放失敗時才退回 Web Audio。
-  let mixAudio = true;
-  try { mixAudio = localStorage.getItem('vocab.mixAudio') !== '0'; } catch {}
+  const flag = (k, d) => { try { const v = localStorage.getItem('vocab.' + k); return v == null ? d : v === '1'; } catch { return d; } };
+  let mixAudio = flag('mixAudio', true), duckAudio = flag('duckAudio', false), autoSpeak = flag('autoSpeak', true);
+  let voiceVol = pref('voiceVol', 100);
+  // 聲音模式：不混音 → playback（音樂暫停）；混音 → ambient（一起播）；混音＋降低背景 → transient（音樂暫時變小）
   function applyAudioMode(){
-    try { if (navigator.audioSession) navigator.audioSession.type = mixAudio ? 'ambient' : 'playback'; } catch {}
+    try { if (navigator.audioSession) navigator.audioSession.type = !mixAudio ? 'playback' : duckAudio ? 'transient' : 'ambient'; } catch {}
   }
   applyAudioMode();
   const SR = 22050;
@@ -785,7 +815,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
       <div class="row">${L.i ? '<button class="btn ghost" type="button" id="lnPrev">上一個</button>' : ''}<button class="btn" type="button" id="lnNext">${last ? '學完了，開始練習' : '下一個'}</button></div>
       <button class="link-btn" type="button" id="lnSkip" style="align-self:center">跳過，直接練習</button>`;
     $('#lnSpeak').onclick = () => speak(w.term);
-    const go = i => { rv.started = true; L.i = i; renderLearn(); speak(W.get(L.ids[i]).term); };
+    const go = i => { rv.started = true; L.i = i; renderLearn(); sayAuto(W.get(L.ids[i]).term); };
     const prev = $('#lnPrev'); if (prev) prev.onclick = () => go(L.i - 1);
     const finish = () => { rv.started = true; rv.learn = null; nextReview(); };
     $('#lnNext').onclick = () => last ? finish() : go(L.i + 1);
@@ -828,7 +858,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
       ${w.ex ? `<div class="example">${esc(w.ex)}</div>` : exampleHtml(w)}
       <div class="row">${ln.i ? '<button class="btn ghost" type="button" id="lnPrev">上一個</button>' : ''}<button class="btn" type="button" id="lnNext">${last ? '看完了' : '下一個'}</button></div>`;
     $('#lnSpeak').onclick = () => speak(w.term);
-    const go = i => { ln.i = i; renderLearnView(); speak(W.get(ln.ids[i]).term); };
+    const go = i => { ln.i = i; renderLearnView(); sayAuto(W.get(ln.ids[i]).term); };
     const prev = $('#lnPrev'); if (prev) prev.onclick = () => go(ln.i - 1);
     $('#lnNext').onclick = () => { if (last) { ln.done = true; renderLearnView(); } else go(ln.i + 1); };
   }
@@ -915,7 +945,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     }
     if (r === 'no') rv.queue.push(id);
     (r === 'no' ? sfx.bad : sfx.good)();
-    speak(W.get(id).term, 420);
+    sayAuto(W.get(id).term, 420);
     renderReview(); stats(); renderWords();
   }
 
@@ -971,7 +1001,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
       const inp = $('#trInput');
       setTimeout(() => { try { inp.focus({preventScroll: true}); } catch {} }, 30);
       $('#trSpeak').onclick = () => speak(w.term);
-      speak(w.term);
+      sayAuto(w.term);
       $('#trForm').onsubmit = e => { e.preventDefault(); if (inp.value.trim()) answerTrans(inp.value); };
       $('#trSkip').onclick = () => answerTrans('');
     } else {
@@ -1007,7 +1037,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     }
     if (!ok) tq.queue.push(id); // 這一輪最後再考一次
     (ok ? sfx.good : sfx.bad)();
-    if (!ok) speak(w.term, 420); // 答對就不再念
+    if (!ok) sayAuto(w.term, 420); // 答對就不再念
     renderTrans(); stats(); renderWords();
   }
 
@@ -1107,7 +1137,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     else note = '這個字已經在練習清單裡。';
     $('#wsTerm').textContent = w.term; $('#wsMean').textContent = w.mean; $('#wsNote').textContent = note;
     $('#wsSay').innerHTML = speakerSvg; $('#wsSay').onclick = () => speak(w.term);
-    $('#wSheet').hidden = false; speak(w.term); stats();
+    $('#wSheet').hidden = false; sayAuto(w.term); stats();
   }
   function closeSheet(){ const s = $('#wSheet'); if (s) s.hidden = true; document.querySelectorAll('.rd-text .w.on').forEach(x => x.classList.remove('on')); }
   $('#wsClose').addEventListener('click', closeSheet);
@@ -1146,16 +1176,16 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   $('#mtGrid').addEventListener('click', e => {
     const t = e.target.closest('.tile'); if (!t || !mt) return;
     const id = t.dataset.id, side = t.dataset.side;
-    if (!mt.sel || mt.sel.side === side) { mt.sel = {id, side}; if (side === 'ko') speak(W.get(id).term); renderMatch(); return; }
+    if (!mt.sel || mt.sel.side === side) { mt.sel = {id, side}; if (side === 'ko') sayAuto(W.get(id).term); renderMatch(); return; }
     const other = mt.sel; mt.sel = null;
     if (other.id === id) {
       mt.gone.add(id);
-      sfx.good(); if (side === 'ko') speak(W.get(id).term, 420); // 只有點韓文字卡才念，點中文字卡不念
+      sfx.good(); if (side === 'ko') sayAuto(W.get(id).term, 420); // 只有點韓文字卡才念，點中文字卡不念
       const w = W.get(id);
       if (!mt.errs.has(id)) { if (isDue(w) || isNew(w)) grade(id, 'good'); else touch(id); }
     } else {
       mt.mistakes++; sfx.bad();
-      if (side === 'ko') speak(W.get(id).term, 520);
+      if (side === 'ko') sayAuto(W.get(id).term, 520);
       for (const x of [id, other.id]) if (!mt.errs.has(x)) { mt.errs.add(x); grade(x, 'again'); }
     }
     renderMatch(); stats(); renderWords();
@@ -1295,11 +1325,21 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   $('#newPerDay').value = String(NEW_PER_DAY); $('#sessionSize').value = String(SESSION);
   if ($('#newPerDay').value !== String(NEW_PER_DAY)) $('#newPerDay').value = '15';
   $('#newPerDay').addEventListener('change', e => { NEW_PER_DAY = +e.target.value; setPref('newPerDay', NEW_PER_DAY); stats(); if (!rv.started) startReview(); });
-  $('#mixAudio').checked = mixAudio;
-  $('#mixAudio').addEventListener('change', e => {
-    mixAudio = e.target.checked; applyAudioMode();
-    try { localStorage.setItem('vocab.mixAudio', mixAudio ? '1' : '0'); } catch {}
-  });
+  // 右上角聲音設定
+  const setFlag = (k, v) => { try { localStorage.setItem('vocab.' + k, v ? '1' : '0'); } catch {} };
+  function syncSettings(){
+    $('#voiceVol').value = voiceVol; $('#voiceVolTxt').textContent = voiceVol + '%';
+    $('#autoSpeak').checked = autoSpeak; $('#mixAudio').checked = mixAudio;
+    $('#duckAudio').checked = duckAudio; $('#duckAudio').disabled = !mixAudio;
+  }
+  $('#setBtn').addEventListener('click', () => { syncSettings(); $('#setModal').hidden = false; });
+  $('#setClose').addEventListener('click', () => { $('#setModal').hidden = true; });
+  $('#setModal').addEventListener('click', e => { if (e.target.id === 'setModal') $('#setModal').hidden = true; });
+  $('#voiceVol').addEventListener('input', e => { voiceVol = +e.target.value; $('#voiceVolTxt').textContent = voiceVol + '%'; setPref('voiceVol', voiceVol); });
+  $('#voiceTest').addEventListener('click', () => speak('안녕하세요'));
+  $('#autoSpeak').addEventListener('change', e => { autoSpeak = e.target.checked; setFlag('autoSpeak', autoSpeak); });
+  $('#mixAudio').addEventListener('change', e => { mixAudio = e.target.checked; setFlag('mixAudio', mixAudio); applyAudioMode(); syncSettings(); });
+  $('#duckAudio').addEventListener('change', e => { duckAudio = e.target.checked; setFlag('duckAudio', duckAudio); applyAudioMode(); });
   $('#sessionSize').addEventListener('change', e => { SESSION = +e.target.value; setPref('sessionSize', SESSION); if (!rv.started) startReview(); });
 
   function parse(text){
