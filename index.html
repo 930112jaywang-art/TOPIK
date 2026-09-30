@@ -485,7 +485,14 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     if (!w.seen && !w.intro) logDay('n');
     logDay('r'); if (q !== 'again') logDay('ok');
     schedule(w, q);
+    w.last = Date.now();
     saveWord(id);
+  }
+  // 還沒到期、答對：不改複習間隔，只記下「剛練過」，讓它排到後面
+  function touch(id){
+    const w = W.get(id); if (!w) return;
+    logDay('r'); logDay('ok');
+    w.last = Date.now(); saveWord(id);
   }
   function schedule(w, q){
     const now = Date.now();
@@ -741,15 +748,12 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   const FAMILIAR = 21;
   function weakest(n, now = Date.now()){
     const learned = [...W.entries()].filter(([, w]) => !isNew(w));
-    const weak = learned.filter(([, w]) => w.interval < FAMILIAR || w.due <= now)
-      .map(([id, w]) => [id, (w.due <= now ? 0 : 1000) + w.interval * 10 - w.lapses * 5 + Math.random()])
-      .sort((a, b) => a[1] - b[1]).map(([id]) => id);
-    const pick = weak.slice(0, n);
-    if (pick.length < n) { // 都熟了：從熟悉的字裡隨機補滿
-      const rest = shuffle(learned.map(([id]) => id).filter(id => !pick.includes(id)));
-      pick.push(...rest.slice(0, n - pick.length));
-    }
-    return pick;
+    // ① 到期該複習的字（遺忘曲線排好的），越早到期越先出
+    const due = learned.filter(([, w]) => w.due <= now).sort((a, b) => a[1].due - b[1].due);
+    // ② 還沒到期的字：最久沒練到的先出，同樣久的話不熟的（間隔短）先出，再隨機打散
+    const rest = shuffle(learned.filter(([, w]) => w.due > now))
+      .sort((a, b) => ((a[1].last || 0) - (b[1].last || 0)) || (a[1].interval - b[1].interval));
+    return [...due, ...rest].slice(0, n).map(([id]) => id);
   }
   function buildQueue(){ return weakest(SESSION); }
   function startReview(){
@@ -900,7 +904,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
       rv.graded.add(id);
       const w = W.get(id);
       if (r === 'no' || isDue(w)) grade(id, r === 'ok' ? 'good' : r === 'close' ? 'hard' : 'again');
-      else { logDay('r'); logDay('ok'); persist(); }
+      else touch(id);
       rv[r === 'ok' ? 'right' : r === 'close' ? 'close' : 'wrong']++;
     }
     if (r === 'no') rv.queue.push(id);
@@ -993,7 +997,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     if (!tq.graded.has(id)) {
       tq.graded.add(id);
       if (!ok) { tq.snap = JSON.parse(JSON.stringify(w)); grade(id, 'again'); tq.wrong++; }
-      else { if (isDue(w)) grade(id, 'good'); else { logDay('r'); logDay('ok'); persist(); } tq.right++; }
+      else { if (isDue(w)) grade(id, 'good'); else touch(id); tq.right++; }
     }
     if (!ok) tq.queue.push(id); // 這一輪最後再考一次
     (ok ? sfx.good : sfx.bad)();
@@ -1142,7 +1146,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
       mt.gone.add(id);
       sfx.good(); if (side === 'ko') speak(W.get(id).term, 420); // 只有點韓文字卡才念，點中文字卡不念
       const w = W.get(id);
-      if (!mt.errs.has(id) && (isDue(w) || isNew(w))) grade(id, 'good');
+      if (!mt.errs.has(id)) { if (isDue(w) || isNew(w)) grade(id, 'good'); else touch(id); }
     } else {
       mt.mistakes++; sfx.bad();
       if (side === 'ko') speak(W.get(id).term, 520);
