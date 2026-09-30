@@ -360,6 +360,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
         <summary>學習設定</summary>
         <label class="setting" for="newPerDay">每次學幾個新字<select id="newPerDay"><option>5</option><option>10</option><option selected>15</option><option>20</option><option>30</option><option>50</option></select></label>
         <label class="setting" for="sessionSize">每一輪幾題<select id="sessionSize"><option>10</option><option selected>20</option><option>30</option><option>50</option></select></label>
+        <label class="setting" for="mixAudio">和音樂、影片同時播放<input type="checkbox" id="mixAudio" style="width:22px;height:22px"></label>
         <div class="row" style="margin-top:10px"><button class="btn ghost" id="exportBtn" type="button">匯出進度備份</button><label class="btn ghost" for="importFile">從備份還原</label><input type="file" id="importFile" accept=".json,application/json" hidden></div>
         <div class="msg" id="backupMsg" role="status"></div>
         <div class="reset">
@@ -646,7 +647,12 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   // ---------- 點按音效 ----------
   // 用程式產生短 WAV 音檔，交給 <audio> 播放：iPhone 上 <audio> 不受靜音開關影響，
   // 也比 Web Audio 更不容易在嵌入頁面裡被擋。播放失敗時才退回 Web Audio。
-  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}
+  let mixAudio = true;
+  try { mixAudio = localStorage.getItem('vocab.mixAudio') !== '0'; } catch {}
+  function applyAudioMode(){
+    try { if (navigator.audioSession) navigator.audioSession.type = mixAudio ? 'ambient' : 'playback'; } catch {}
+  }
+  applyAudioMode();
   const SR = 22050;
   function wav(notes){ // notes: [freq, start, dur, vol, wave]
     const len = Math.ceil(SR * Math.max(...notes.map(n => n[1] + n[2])) + SR * .02);
@@ -1289,6 +1295,11 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   $('#newPerDay').value = String(NEW_PER_DAY); $('#sessionSize').value = String(SESSION);
   if ($('#newPerDay').value !== String(NEW_PER_DAY)) $('#newPerDay').value = '15';
   $('#newPerDay').addEventListener('change', e => { NEW_PER_DAY = +e.target.value; setPref('newPerDay', NEW_PER_DAY); stats(); if (!rv.started) startReview(); });
+  $('#mixAudio').checked = mixAudio;
+  $('#mixAudio').addEventListener('change', e => {
+    mixAudio = e.target.checked; applyAudioMode();
+    try { localStorage.setItem('vocab.mixAudio', mixAudio ? '1' : '0'); } catch {}
+  });
   $('#sessionSize').addEventListener('change', e => { SESSION = +e.target.value; setPref('sessionSize', SESSION); if (!rv.started) startReview(); });
 
   function parse(text){
