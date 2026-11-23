@@ -410,6 +410,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
       <label for="voiceVol">語音音量 <b id="voiceVolTxt"></b></label>
       <div class="row" style="align-items:center;flex-wrap:nowrap"><input type="range" id="voiceVol" min="0" max="100" step="10" style="flex:1"><button class="btn ghost" type="button" id="voiceTest">試聽</button></div>
     </div>
+    <label class="set-row" for="sfxOn"><span>按鈕與答題音效<small>點按的「嗒」、答對答錯的提示音</small></span><input type="checkbox" id="sfxOn"></label>
     <label class="set-row" for="autoSpeak"><span>自動播放韓文語音<small>關掉後只有點喇叭才會念</small></span><input type="checkbox" id="autoSpeak"></label>
     <label class="set-row" for="mixAudio"><span>和音樂、影片同時播放<small>關掉的話 App 的聲音會讓音樂暫停</small></span><input type="checkbox" id="mixAudio"></label>
     <label class="set-row" for="duckAudio"><span>播放時降低背景音量<small>App 出聲時，音樂暫時變小聲</small></span><input type="checkbox" id="duckAudio"></label>
@@ -676,7 +677,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   // 用程式產生短 WAV 音檔，交給 <audio> 播放：iPhone 上 <audio> 不受靜音開關影響，
   // 也比 Web Audio 更不容易在嵌入頁面裡被擋。播放失敗時才退回 Web Audio。
   const flag = (k, d) => { try { const v = localStorage.getItem('vocab.' + k); return v == null ? d : v === '1'; } catch { return d; } };
-  let mixAudio = flag('mixAudio', true), duckAudio = flag('duckAudio', false), autoSpeak = flag('autoSpeak', true);
+  let mixAudio = flag('mixAudio', true), duckAudio = flag('duckAudio', false), autoSpeak = flag('autoSpeak', true), sfxOn = flag('sfxOn', true);
   let voiceVol = pref('voiceVol', 100);
   // 聲音模式：不混音 → playback（音樂暫停）；混音 → ambient（一起播）；混音＋降低背景 → transient（音樂暫時變小）
   function applyAudioMode(){
@@ -749,9 +750,9 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   }
   let sfxAt = 0;
   const sfx = {
-    tap(){ play('tap'); },
-    good(){ sfxAt = performance.now(); play('good'); },
-    bad(){ sfxAt = performance.now(); play('bad'); },
+    tap(){ if (sfxOn) play('tap'); },
+    good(){ sfxAt = performance.now(); if (sfxOn) play('good'); },
+    bad(){ sfxAt = performance.now(); if (sfxOn) play('bad'); },
   };
   try { pool('tap'); pool('good'); pool('bad'); } catch {}
   // 點按聲放在 click（冒泡到最後才執行），同一下已經播了答對/答錯音效就不再疊加
@@ -1332,7 +1333,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   const setFlag = (k, v) => { try { localStorage.setItem('vocab.' + k, v ? '1' : '0'); } catch {} };
   function syncSettings(){
     $('#voiceVol').value = voiceVol; $('#voiceVolTxt').textContent = voiceVol + '%';
-    $('#autoSpeak').checked = autoSpeak; $('#mixAudio').checked = mixAudio;
+    $('#sfxOn').checked = sfxOn; $('#autoSpeak').checked = autoSpeak; $('#mixAudio').checked = mixAudio;
     $('#duckAudio').checked = duckAudio; $('#duckAudio').disabled = !mixAudio;
   }
   $('#setBtn').addEventListener('click', () => { syncSettings(); $('#setModal').hidden = false; });
@@ -1340,6 +1341,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   $('#setModal').addEventListener('click', e => { if (e.target.id === 'setModal') $('#setModal').hidden = true; });
   $('#voiceVol').addEventListener('input', e => { voiceVol = +e.target.value; $('#voiceVolTxt').textContent = voiceVol + '%'; setPref('voiceVol', voiceVol); });
   $('#voiceTest').addEventListener('click', () => speak('안녕하세요'));
+  $('#sfxOn').addEventListener('change', e => { sfxOn = e.target.checked; setFlag('sfxOn', sfxOn); });
   $('#autoSpeak').addEventListener('change', e => { autoSpeak = e.target.checked; setFlag('autoSpeak', autoSpeak); });
   $('#mixAudio').addEventListener('change', e => { mixAudio = e.target.checked; setFlag('mixAudio', mixAudio); applyAudioMode(); syncSettings(); });
   $('#duckAudio').addEventListener('change', e => { duckAudio = e.target.checked; setFlag('duckAudio', duckAudio); applyAudioMode(); });
