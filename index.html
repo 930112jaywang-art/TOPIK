@@ -398,10 +398,13 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   </section>
 </div>
 
-<div class="toast" id="sndTest" hidden>
-  <p>聲音測試</p>
-  <div class="row"><button class="btn" id="sndA" type="button">測試 A</button><button class="btn" id="sndB" type="button">測試 B</button><button class="btn ghost" id="sndClose" type="button">關閉</button></div>
+<div class="toast" id="sndTest" style="bottom:auto;top:calc(12px + env(safe-area-inset-top,0px));z-index:30" hidden>
+  <p style="font-weight:600">聲音測試</p>
+  <p>先讓手機在背景播放音樂，再一個一個按下面的按鈕，記下哪幾個會讓音樂停下來或變小聲。</p>
+  <div class="row"><button class="btn" id="sndA" type="button">A 音效一</button><button class="btn" id="sndB" type="button">B 音效二</button><button class="btn" id="sndC" type="button">C 韓文</button></div>
+  <div class="row" id="sndModes" style="gap:6px"></div>
   <pre id="sndOut" style="margin:0;white-space:pre-wrap;font-size:13px;font-family:var(--mono)"></pre>
+  <button class="btn ghost" id="sndClose" type="button" style="width:100%">關閉</button>
 </div>
 <div class="modal-bg" id="setModal" hidden>
   <div class="modal" role="dialog" aria-labelledby="setTitle">
@@ -413,6 +416,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     <label class="set-row" for="sfxOn"><span>按鈕與答題音效<small>點按的「嗒」、答對答錯的提示音</small></span><input type="checkbox" id="sfxOn"></label>
     <label class="set-row" for="autoSpeak"><span>自動播放韓文語音<small>關掉後只有點喇叭才會念</small></span><input type="checkbox" id="autoSpeak"></label>
     <label class="set-row" for="mixAudio"><span>和音樂、影片同時播放<small>關掉的話 App 的聲音會讓音樂暫停</small></span><input type="checkbox" id="mixAudio"></label>
+    <button class="btn ghost" type="button" id="openSndTest" style="margin-top:6px">聲音測試（找出哪種聲音會打斷音樂）</button>
     <label class="set-row" for="duckAudio"><span>播放時降低背景音量<small>App 出聲時，音樂暫時變小聲</small></span><input type="checkbox" id="duckAudio"></label>
   </div>
 </div>
@@ -759,7 +763,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   document.addEventListener('click', e => {
     const b = e.target.closest('button, .tile, .choice, summary');
     // 這一下會念韓文、或韓文正在念的時候，就不播點按聲（iPhone 兩者會互相蓋掉）
-    if (!b || b.disabled || b.hasAttribute('data-say-ex') || performance.now() - sfxAt < 60 || performance.now() - speakAt < 60) return;
+    if (!b || b.disabled || b.hasAttribute('data-say-ex') || b.closest('#sndTest') || performance.now() - sfxAt < 60 || performance.now() - speakAt < 60) return;
     try { if (speechSynthesis.speaking) return; } catch {}
     sfx.tap();
   });
@@ -767,8 +771,14 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   function soundTest(){
     const box = $('#sndTest'); box.hidden = false;
     const out = $('#sndOut');
+    const ios = (navigator.userAgent.match(/OS (\d+)_(\d+)/) || []).slice(1).join('.') || '?';
+    const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+    // 聲音模式可以在這裡切換來比較
+    $('#sndModes').innerHTML = ['ambient', 'transient', 'playback', 'auto'].map(m => `<button class="btn ghost" type="button" data-snd-mode="${m}" style="flex:1;padding:8px 4px;font-size:14px">${m}</button>`).join('');
+    $('#sndModes').onclick = e => { const b = e.target.closest('[data-snd-mode]'); if (!b) return; try { navigator.audioSession.type = b.dataset.sndMode; } catch {} sndLog.push('模式改為 ' + b.dataset.sndMode); info(); };
     const info = () => {
       out.textContent = [
+        'iOS ' + ios + (standalone ? '・主畫面 App' : '・Safari'),
         'audioSession: ' + (navigator.audioSession ? navigator.audioSession.type : '不支援'),
         'AudioContext: ' + (actx ? actx.state : '尚未建立'),
         'speechSynthesis: ' + (window.speechSynthesis ? '有' : '沒有'),
@@ -776,9 +786,10 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
       ].join('\n');
     };
     $('#sndA').onclick = () => { const p = pool('good'), a = p.els[0]; a.currentTime = 0; a.play().then(() => { sndLog.push('測試 audio ok'); info(); }, e => { sndLog.push('測試 audio 失敗 ' + e.name + ': ' + e.message); info(); }); };
-    $('#sndB').onclick = () => { webTone('good'); setTimeout(info, 300); };
-    $('#sndClose').onclick = () => { box.hidden = true; };
-    info(); setInterval(info, 1000);
+    $('#sndB').onclick = () => { webTone('good'); sndLog.push('測試 Web Audio'); setTimeout(info, 300); };
+    $('#sndC').onclick = () => { speakNow('안녕하세요'); sndLog.push('測試 韓文語音'); info(); };
+    $('#sndClose').onclick = () => { box.hidden = true; applyAudioMode(); };
+    info(); if (!soundTest.t) soundTest.t = setInterval(info, 1000);
   }
   const speakerSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>';
 
@@ -1338,6 +1349,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   }
   $('#setBtn').addEventListener('click', () => { syncSettings(); $('#setModal').hidden = false; });
   $('#setClose').addEventListener('click', () => { $('#setModal').hidden = true; });
+  $('#openSndTest').addEventListener('click', () => { $('#setModal').hidden = true; soundTest(); });
   $('#setModal').addEventListener('click', e => { if (e.target.id === 'setModal') $('#setModal').hidden = true; });
   $('#voiceVol').addEventListener('input', e => { voiceVol = +e.target.value; $('#voiceVolTxt').textContent = voiceVol + '%'; setPref('voiceVol', voiceVol); });
   $('#voiceTest').addEventListener('click', () => speak('안녕하세요'));
