@@ -726,13 +726,15 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
       for (const [f, st, du, vol, wave] of SOUNDS[name]) {
         const o = actx.createOscillator(), g = actx.createGain(), t0 = actx.currentTime + .01 + st;
         o.type = wave === 'tri' ? 'triangle' : 'sine'; o.frequency.value = f;
-        g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol * .4, t0 + .008); g.gain.exponentialRampToValueAtTime(0.0001, t0 + du);
+        g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol * .7, t0 + .008); g.gain.exponentialRampToValueAtTime(0.0001, t0 + du);
         o.connect(g); g.connect(actx.destination); o.start(t0); o.stop(t0 + du + .02);
       }
       sndLog.push('webaudio ' + actx.state);
     } catch (e) { sndLog.push('webaudio error ' + e.name); }
   }
   function play(name){
+    // 和音樂同時播放時改用 Web Audio：<audio> 在部分手機（Android、較舊的 iOS）會搶走播放權，讓音樂暫停
+    if (mixAudio) { webTone(name); return; }
     try {
       const p = pool(name), a = p.els[p.i++ % p.els.length];
       a.currentTime = 0;
@@ -742,6 +744,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
   }
   // iPhone 念完韓文後會暫時收回網頁的播放權，念完立刻播一段無聲音訊把它要回來
   function wakeAudio(){
+    if (mixAudio) return; // 混音模式不需要，而且這段無聲 <audio> 反而會讓音樂暫停
     try { const a = pool('silence').els[0]; a.currentTime = 0; const pr = a.play(); if (pr && pr.catch) pr.catch(() => {}); } catch {}
   }
   let sfxAt = 0;
