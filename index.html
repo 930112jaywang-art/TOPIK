@@ -661,7 +661,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
       u.lang = 'ko-KR'; u.rate = .85; u.volume = Math.max(0, Math.min(1, voiceVol / 100));
       if (koVoice) u.voice = koVoice;
       u.onstart = () => { speechReady = true; };
-      u.onend = () => { wakeAudio(); setTimeout(wakeAudio, 250); setTimeout(wakeAudio, 700); };
+      u.onend = () => { applyAudioMode(); wakeAudio(); setTimeout(wakeAudio, 250); setTimeout(wakeAudio, 700); };
       u.onerror = e => { if (e.error !== 'interrupted' && e.error !== 'canceled') warnVoice(); };
       // iOS：先 cancel 再立刻 speak 有時會被吞掉，只在正在念時才 cancel
       if (ss.speaking || ss.pending) ss.cancel();
@@ -738,6 +738,7 @@ header .stats,.meta-row,.prompt-label,.qtype,.next-due,.official,.chips,.choice 
     } catch (e) { sndLog.push('webaudio error ' + e.name); }
   }
   function play(name){
+    applyAudioMode();
     // 和音樂同時播放時改用 Web Audio：<audio> 在部分手機（Android、較舊的 iOS）會搶走播放權，讓音樂暫停
     if (mixAudio) { webTone(name); return; }
     try {
